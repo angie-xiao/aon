@@ -47,5 +47,5 @@ Your computer is now ready to run the Python script.
 
 ### 3.1 Let’s first find your file path by right click on the excel file you just saved on desktop
 
-![Alt text](.\Instructions\Screenshots\copy_to_path.png)
+![ScreenShot](copy_to_path.png)
 
