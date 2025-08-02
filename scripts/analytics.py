@@ -13,9 +13,21 @@ df['discount_per_unit'] = np.where(
     df['discount_per_unit']
 )
 
-df['incremental_per_units'] = df['total_vendor_funding'] - df['discount_per_unit']
+df['incremental_per_unit'] = df['total_vendor_funding'] - df['discount_per_unit']
+df['incremental_per_unit'] = np.where(
+    (df['incremental_per_unit'] < 0) | (df['incremental_per_unit'].isna()),
+    0,
+    df['incremental_per_unit']
+)
 
-# * shipped untis
 
+df['incremental_gains'] = df['incremental_per_unit'] * df['shipped_units']
+df['incremental_gains'] = np.where(
+    (df['incremental_gains'] < 0) | (df['incremental_gains'].isna()),
+    0,
+    df['incremental_gains']
+)
+
+# df['incremental_gains'].sum()
 
 pass
