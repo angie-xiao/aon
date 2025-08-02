@@ -33,8 +33,10 @@ CREATE TEMP TABLE deal_asins AS (
             ON pa.promotion_key = p.promotion_key
             AND pa.region_id = p.region_id
             AND p.marketplace_key = pa.marketplace_key
-    WHERE pa.asin_approval_status = 'APPROVED'
+    -- WHERE pa.asin_approval_status = 'APPROVED'
 );
+
+-- select * from deal_asins
 
 SELECT 
     da.PAWS_PROMOTION_ID,
@@ -49,13 +51,12 @@ SELECT
     da.total_vendor_funding,
     SUM(o.shipped_units) as shipped_units
 FROM deal_asins da
-    LEFT JOIN andes.booker.d_unified_cust_shipment_items o
+    LEFT JOIN "andes"."booker"."d_unified_cust_shipment_items" o
     ON o.asin = da.asin
     AND o.marketplace_id::INT = da.marketplace_key::INT
     AND o.region_id::INT = da.region_id::INT
-    AND TO_DATE(o.order_datetime, 'YYYY-MM-DD')
-        BETWEEN TO_DATE(da.start_datetime, 'YYYY-MM-DD') 
-        AND TO_DATE(da.end_datetime, 'YYYY-MM-DD')
+    AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') >= TO_DATE(da.start_datetime, 'YYYY-MM-DD') 
+    AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') <= TO_DATE(da.end_datetime, 'YYYY-MM-DD')
 GROUP BY 
     da.PAWS_PROMOTION_ID,
     da.start_datetime,
@@ -66,4 +67,5 @@ GROUP BY
     da.asin,
     da.asin_approval_status,
     da.promotion_pricing_amount,
-    da.total_vendor_funding;
+    da.total_vendor_funding
+;
