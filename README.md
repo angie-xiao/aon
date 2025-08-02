@@ -1,5 +1,11 @@
 # AON Deal Incremental Gains Calculation
+
+## 0. Workflow
+<img src="./screenshots/schema.png" alt="drawing" width="250"/>
+
+
 ## 1. Data Prep
+
 *The goal of Section One is to create an excel file with two tabs that we will input into a Python script in Section Two.*
 
 ### 1.1 Receive table from Deal SMEs with information shown as below:
@@ -32,6 +38,7 @@
 
 
 ## 2. Install Python & Required Libraries
+*Now we need to make sure that your computer is ready to run a python script.*
 * Install [Python](http://softwarecenter:SoftwareID=ScopeId_6C900AD6-A53B-4C44-B96C-1002E20C5DF9/Application_beaa76ce-05e1-481d-bec0-98dcc6b16f38) through Software Center
 * Open terminal. Run following commands - one line at a time.
 
@@ -47,5 +54,7 @@ Your computer is now ready to run the Python script.
 
 ### 3.1 Let’s first find your file path by right click on the excel file you just saved on desktop
 
-![ScreenShot](./screenshots/copy_to_path.png)
+<img src="./screenshots/copy_to_path.png" alt="drawing" width="250"/>
 
+
+### 3.2 Call python script
