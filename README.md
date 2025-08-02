@@ -1,7 +1,7 @@
 # AON Deal Incremental Gains Calculation
 
 ## 0. Workflow
-<img src="./screenshots/flowchart.png" alt="drawing" width="650" / >
+<img src="./screenshots/flowchart.png" alt="drawing" width="650"/>
 
 
 ## 1. Data Prep
