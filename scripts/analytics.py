@@ -1,10 +1,13 @@
+# %%
 import pandas as pd
 import numpy as np
 
-
-query_output_df = pd.read_excel('C:/Users/aqxiao/Desktop/aon_deals.xlsx', sheet_name='QUERY OUTPUT')
+# read file
+query_output_df = pd.read_excel('../aon_deals.xlsx', sheet_name='QUERY OUTPUT')
 df = query_output_df.copy()
 
+df.head(3)
+# %%
 # discount per unit
 df['discount_per_unit'] = df['asp'] - df['promotion_pricing_amount']
 df['discount_per_unit'] = np.where(
@@ -28,6 +31,10 @@ df['incremental_gains'] = np.where(
     df['incremental_gains']
 )
 
+df.head(3)
 # df['incremental_gains'].sum()
 
-pass
+# %%
+# output
+df.to_excel('../output.xlsx')
+# %%
