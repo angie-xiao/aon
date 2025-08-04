@@ -14,10 +14,12 @@
 |---|---|---|
 | B0CVHHF5MR | 311891281213| aqxiao |
 
+*<span style="color: red">NOTE: for paws_promotion_id, you must format it as numbers and set decimal place to 0.</span>*
+
 
 ### 1.2 Create a new excel file
-* Let’s save it on desktop and name it “aon_deals.xlsx”
-* Create the first tab as “DEAL_SME_INPUT”.
+* Let’s save it on desktop and name it `aon_deals.xlsx`
+* Create the first tab as DEAL SME INPUT`.
 * Reformat excel sheet Deal SMEs shared like table below 
 * Save file
 
