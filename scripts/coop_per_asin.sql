@@ -115,6 +115,7 @@ CREATE TEMP TABLE deals_asin_details AS (
         da.region_id,
         da.marketplace_key,
         da.asin,
+        asp.asp,
         da.asin_approval_status,
         da.promotion_pricing_amount,
         da.total_vendor_funding
