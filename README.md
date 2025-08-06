@@ -26,10 +26,10 @@
 for `paws_promotion_id`, you must format it as <span style="color: coral">numbers</span> and set <span style="color: coral">decimal place to 0.</span>
 
 ##### Wrong Format
-<img src="./screenshots/wrong_format.png" alt='Wrong Format' width="650"/>
+<img src="./screenshots/wrong_format.png" alt="drawing" width="650"/>
 
 ##### Correct Format
-<img src="./screenshots/correct_format.png" width="650"/>
+<img src="./screenshots/correct_format.png" alt="drawing"  width="650"/>
 
 
 ### 1.3 Query
