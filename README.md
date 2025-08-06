@@ -10,7 +10,7 @@
 
 ### 1.1 Receive table from Deal SMEs with information shown as below:
 
-| asin | paws_promotion_id | deal_owner |
+| asin | paws_promotion_id | created_by |
 |---|---|---|
 | B0CVHHF5MR | 311891281213| aqxiao |
 
@@ -26,17 +26,14 @@
 
 ### 1.3 Query
 * Use [inclauserator](https://inclauserator.corp.amazon.com/inclauserator/submit) to add quotation marks around your list of PAWS Promo IDs
-* run [query](https://github.com/angie-xiao/aon/blob/main/scripts/coop_per_asin.sql) on [workbench](https://datacentral.a2z.com/workbench) (remember to edit WHERE clause)
+* Edit query as per your needs
+    * For `WHERE` clause in `filtered_promos`, filter for your deal ASINs' `paws_promo_id`s (based on Deal SMEs' input)
+    * For `WHERE` clause in the `t4w_promo_asp`, filter for T4W period based on your promo start date 
+* Run [query](https://github.com/angie-xiao/aon/blob/main/scripts/coop_per_asin.sql) on [workbench](https://datacentral.a2z.com/workbench)
 
 ### 1.4 Go back to the `aon_deals.xlsx` file you just created
 * Create second tab. Let’s call it `QUERY OUTPUT`.
-* Download result and save it `QUERY OUTPUT`. 
-* Go to Turismo, manually find pre-deal (T4W) for deal ASINs
-    * E.g. Prime Day ’25 started on Jul 8
-    * Pre-deal period for PD ’25 should be
-        * Start date = June 9 (Jul 8 counting back 29 days) 
-        * End date = Jul 7 (Jul 8 counting back 1 day)
-* Download output from Turismo. Add ASIN ASP to “QUERY OUTPUT” tab.
+* Download result and save it to the `QUERY OUTPUT` tab you just created. 
 
 
 ## 2. Install Python & Required Libraries

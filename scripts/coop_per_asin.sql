@@ -19,6 +19,7 @@ CREATE TEMP TABLE filtered_promos AS (
     )      
 );
 
+
 -- get promo pricing & vendor funding
 DROP TABLE IF EXISTS deal_asins;
 CREATE TEMP TABLE deal_asins AS (
@@ -37,7 +38,7 @@ CREATE TEMP TABLE deal_asins AS (
 );
 
 
-
+-- get shipped units
 DROP TABLE IF EXISTS filtered_shipments;
 CREATE TEMP TABLE filtered_shipments AS (
     SELECT 
@@ -51,32 +52,73 @@ CREATE TEMP TABLE filtered_shipments AS (
 );
 
 
-SELECT 
-    da.PAWS_PROMOTION_ID,
-    da.start_datetime,
-    da.end_datetime,
-    da.promotion_key,
-    da.region_id,
-    da.marketplace_key,
-    da.asin,
-    da.asin_approval_status,
-    da.promotion_pricing_amount,
-    da.total_vendor_funding,
-    SUM(o.shipped_units) as shipped_units
-FROM deal_asins da
-    LEFT JOIN filtered_shipments o
-    ON o.asin = da.asin
-    AND o.order_datetime >= da.start_datetime
-    AND o.order_datetime <= da.end_datetime
-GROUP BY 
-    da.PAWS_PROMOTION_ID,
-    da.start_datetime,
-    da.end_datetime,
-    da.promotion_key,
-    da.region_id,
-    da.marketplace_key,
-    da.asin,
-    da.asin_approval_status,
-    da.promotion_pricing_amount,
-    da.total_vendor_funding
-;
+-- calculate pre-deal (T4W) ASP, based on promo start date 
+DROP TABLE IF EXISTS t4w_promo_asp;
+CREATE TEMP TABLE t4w_promo_asp AS (
+    SELECT 
+        d.asin,
+        AVG(cp.revenue_share_amt / o.shipped_units) as asp
+
+    FROM  "andes"."booker"."d_unified_cust_shipment_items" o
+        INNER JOIN deal_asins d
+            ON o.asin = d.asin
+            AND o.marketplace_id=d.marketplace_key
+            AND o.region_id=d.region_id
+            -- and o.gl_product_group = d.gl_product_group
+        INNER JOIN andes.contribution_ddl.o_wbr_cp_na cp
+            ON o.customer_shipment_item_id = cp.customer_shipment_item_id 
+            AND o.asin = cp.asin
+            AND o.marketplace_id = cp.marketplace_id
+            AND cp.marketplace_id = 7
+
+    WHERE d.region_id = 1
+        AND d.marketplace_key = 7 
+        AND o.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
+        -- t4w prior to promo start date
+        AND o.order_datetime 
+            BETWEEN TO_DATE('2025-07-08', 'YYYY-MM-DD') -- promo start day
+                - interval '29 days'
+            AND TO_DATE('2025-07-08', 'YYYY-MM-DD') -- promo start day
+                - interval '1 days'
+    GROUP BY d.asin
+);
+
+
+-- final output
+DROP TABLE IF EXISTS deals_asin_details;
+CREATE TEMP TABLE deals_asin_details AS (
+    SELECT 
+        da.PAWS_PROMOTION_ID,
+        da.start_datetime,
+        da.end_datetime,
+        da.promotion_key,
+        da.region_id,
+        da.marketplace_key,
+        da.asin,
+        asp.asp,
+        da.asin_approval_status,
+        da.promotion_pricing_amount,
+        da.total_vendor_funding,
+        SUM(o.shipped_units) as shipped_units
+    FROM deal_asins da
+        LEFT JOIN filtered_shipments o
+            ON o.asin = da.asin
+            AND o.order_datetime >= da.start_datetime
+            AND o.order_datetime <= da.end_datetime
+        INNER JOIN t4w_promo_asp asp
+            ON asp.asin = da.asin
+    GROUP BY 
+        da.PAWS_PROMOTION_ID,
+        da.start_datetime,
+        da.end_datetime,
+        da.promotion_key,
+        da.region_id,
+        da.marketplace_key,
+        da.asin,
+        da.asin_approval_status,
+        da.promotion_pricing_amount,
+        da.total_vendor_funding
+);
+
+
+SELECT * FROM deals_asin_details

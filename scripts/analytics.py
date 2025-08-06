@@ -4,6 +4,7 @@ import numpy as np
 
 # read file
 deal_sme_input_df = pd.read_excel('../aon_deals.xlsx', sheet_name='DEAL SME INPUT')
+
 # dealing with na & inf
 deal_sme_input_df['paws_promotion_id'] = np.where(
     (deal_sme_input_df['paws_promotion_id'] == np.nan) | 
@@ -13,6 +14,7 @@ deal_sme_input_df['paws_promotion_id'] = np.where(
     '',
     deal_sme_input_df['paws_promotion_id'].astype(str)
 )
+
 deal_sme_input_df['paws_promotion_id'] = deal_sme_input_df['paws_promotion_id'].str[:-2]
 # deal_sme_input_df.head(3)
 
