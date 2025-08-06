@@ -43,17 +43,18 @@ CREATE TEMP TABLE deal_asins AS (
 DROP TABLE IF EXISTS filtered_shipments;
 CREATE TEMP TABLE filtered_shipments AS (
     SELECT 
-        asin,
-        SUM(shipped_units) AS shipped_units
+        d.asin,
+        SUM(o.shipped_units) AS shipped_units
     FROM  "andes"."booker"."d_unified_cust_shipment_items" o
         RIGHT JOIN deal_asins d
-        ON d.asin = o.asin
-        AND TO_DATE(o.order_datetime, 'YYYY-MM-DD')
-            BETWEEN TO_DATE(d.start_datetime,'YYYY-MM-DD') AND TO_DATE(d.end_datetime, 'YYYY-MM-DD')
-    WHERE region_id = 1
-        AND marketplace_id = 7 
-        AND gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
-    GROUP BY asin
+            ON d.asin = o.asin
+            AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') 
+                BETWEEN TO_DATE(d.start_datetime,'YYYY-MM-DD') 
+                AND TO_DATE(d.end_datetime, 'YYYY-MM-DD')
+    WHERE o.region_id = 1
+        AND o.marketplace_id = 7 
+        AND o.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
+    GROUP BY d.asin
 );
 
 
