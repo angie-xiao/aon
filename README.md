@@ -14,14 +14,22 @@
 |---|---|---|
 | B0CVHHF5MR | 311891281213| aqxiao |
 
-*<span style="color: red">NOTE: for paws_promotion_id, you must format it as numbers and set decimal place to 0.</span>*
-
 
 ### 1.2 Create a new excel file
 * Let’s save it on desktop and name it `aon_deals.xlsx`
 * Create the first tab as DEAL SME INPUT`.
 * Reformat excel sheet Deal SMEs shared like table below 
 * Save file
+
+
+#### *<span style="color: coral">NOTE:</span>*
+for `paws_promotion_id`, you must format it as <span style="color: coral">numbers</span> and set <span style="color: coral">decimal place to 0.</span>
+
+##### Wrong Format
+<img src="./screenshots/wrong format.png" alt='Wrong Format' width="650"/>
+
+##### Correct Format
+<img src="./screenshots/correct format.png" width="650"/>
 
 
 ### 1.3 Query
@@ -34,6 +42,9 @@
 ### 1.4 Go back to the `aon_deals.xlsx` file you just created
 * Create second tab. Let’s call it `QUERY OUTPUT`.
 * Download result and save it to the `QUERY OUTPUT` tab you just created. 
+
+#### *<span style="color: coral">NOTE: </font>*
+similar to formatting step in Section 1.2, you must also format `paws_promotion_id` in `QUERY OUTPUT` as numbers and set decimal place to 0.</span>*
 
 
 ## 2. Install Python & Required Libraries

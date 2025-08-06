@@ -16,8 +16,9 @@ deal_sme_input_df['paws_promotion_id'] = np.where(
 )
 
 deal_sme_input_df['paws_promotion_id'] = deal_sme_input_df['paws_promotion_id'].str[:-2]
-# deal_sme_input_df.head(3)
+deal_sme_input_df.head(3)
 
+# %%
 # same for query output tab
 query_output_df = pd.read_excel('../aon_deals.xlsx', sheet_name='QUERY OUTPUT')
 query_output_df['paws_promotion_id'] = np.where(
@@ -28,17 +29,20 @@ query_output_df['paws_promotion_id'] = np.where(
     ' ',
     query_output_df['paws_promotion_id'].astype(str)
 )
-# query_output_df.head(3)
+query_output_df.head(3)
 
+# %%
 
 # join dataframes
 df = pd.merge(
     query_output_df, deal_sme_input_df,
-    how='inner',
-    on=['asin', 'paws_promotion_id']
+    how='right',
+    on=['asin', 
+        # 'paws_promotion_id'
+    ]
 )
 
-# df.head(3)
+df.head(3)
 
 # %%
 # discount per unit
