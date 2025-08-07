@@ -95,7 +95,7 @@ Your computer is now ready to run the Python script.
 
     **⚠️ IMPORTANT ⚠️**
 
-        <span style="color:red">**Add**</span> quotations marks around your path.
+    <span style="color:red">**Add**</span> quotations marks around your path.
 
 * Next, call Python script
 
@@ -109,7 +109,7 @@ Your computer is now ready to run the Python script.
 
     **⚠️ IMPORTANT ⚠️**
 
-        <span style="color:red">**DO NOT**</span> Add quotations marks around your path.
+    <span style="color:red">**DO NOT**</span> Add quotations marks around your path.
 
 * The script will do all of the analytics from here. Once it's done, you should see the completion message - 
 
