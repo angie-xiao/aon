@@ -89,13 +89,13 @@ Your computer is now ready to run the Python script.
 
 * First, find Terminal from Menu.
 
-    <img src="./screenshots/terminal.png" alt="drawing" width="450"/>
+    <img src="./screenshots/terminal.png" alt="drawing" width="850"/>
 
 
 * Find the directory where you're storing the scripts in your File Explorer. Copy that address.
 
 
-    <img src="./screenshots/path.png" alt="drawing" width="650"/>
+    <img src="./screenshots/path.png" alt="drawing" width="850"/>
 
 
 * Then change directory like below with your own directory path. It should look something like this - 
