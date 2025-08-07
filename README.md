@@ -22,7 +22,7 @@
 * Save file
 
 
-#### **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
+#### **⚠️ IMPORTANT ⚠️**
 for `paws_promotion_id`, you must format it as <span style="color: coral">numbers</span> and set <span style="color: coral">decimal place to 0.</span>
 
 ##### Wrong Format
@@ -42,7 +42,7 @@ for `paws_promotion_id`, you must format it as <span style="color: coral">number
 * Create second tab. Let’s call it `QUERY OUTPUT`.
 * Download result and save it to the `QUERY OUTPUT` tab you just created. 
 
-#### **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
+#### **⚠️ IMPORTANT ⚠️**
 similar to formatting step in Section 1.2, you must also format `paws_promotion_id` in `QUERY OUTPUT` as numbers and set decimal place to 0.</span>*
 
 
@@ -93,9 +93,9 @@ Your computer is now ready to run the Python script.
     cd "C:\Users\aqxiao\DS BI\AON\aon\scripts"
     ```
 
-    **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
+    **⚠️ IMPORTANT ⚠️**
 
-    <span style="color:red">**Add**</span> quotations marks around your path.
+        <span style="color:red">**Add**</span> quotations marks around your path.
 
 * Next, call Python script
 
@@ -107,9 +107,9 @@ Your computer is now ready to run the Python script.
 
     <img src="./screenshots/dir.png" alt="drawing" width="450"/>
 
-    **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
-    
-    <span style="color:red">**DO NOT**</span> Add quotations marks around your path.
+    **⚠️ IMPORTANT ⚠️**
+
+        <span style="color:red">**DO NOT**</span> Add quotations marks around your path.
 
 * The script will do all of the analytics from here. Once it's done, you should see the completion message - 
 
