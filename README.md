@@ -22,7 +22,7 @@
 * Save file
 
 
-#### *<span style="color: coral">NOTE:</span>*
+#### **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
 for `paws_promotion_id`, you must format it as <span style="color: coral">numbers</span> and set <span style="color: coral">decimal place to 0.</span>
 
 ##### Wrong Format
@@ -43,13 +43,14 @@ for `paws_promotion_id`, you must format it as <span style="color: coral">number
 * Create second tab. Let’s call it `QUERY OUTPUT`.
 * Download result and save it to the `QUERY OUTPUT` tab you just created. 
 
-#### *<span style="color: coral">NOTE: </font>*
+#### **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
 similar to formatting step in Section 1.2, you must also format `paws_promotion_id` in `QUERY OUTPUT` as numbers and set decimal place to 0.</span>*
 
 
 ## 2. Install Python & Required Libraries
 *Now we need to make sure that your computer is ready to run a python script.*
 * Install [Python](http://softwarecenter:SoftwareID=ScopeId_6C900AD6-A53B-4C44-B96C-1002E20C5DF9/Application_beaa76ce-05e1-481d-bec0-98dcc6b16f38) through Software Center
+
 * Open terminal. Run following commands - one line at a time.
 
 ```
@@ -67,4 +68,4 @@ Your computer is now ready to run the Python script.
 <img src="./screenshots/copy_to_path.png" alt="drawing" width="250"/>
 
 
-### 3.2 Call python script
+### 3.2 Call python script in terminal

@@ -38,23 +38,29 @@ CREATE TEMP TABLE deal_asins AS (
     -- WHERE pa.asin_approval_status = 'APPROVED'
 );
 
-
 -- get shipped units
 DROP TABLE IF EXISTS filtered_shipments;
 CREATE TEMP TABLE filtered_shipments AS (
+
+    WITH deal_date_ranges AS (
+        SELECT DISTINCT 
+            MIN(TO_DATE(start_datetime,'YYYY-MM-DD')) as min_date,
+            MAX(TO_DATE(end_datetime,'YYYY-MM-DD')) as max_date 
+        FROM deal_asins
+    )
+
     SELECT 
-        d.asin,
-        SUM(o.shipped_units) AS shipped_units
-    FROM  "andes"."booker"."d_unified_cust_shipment_items" o
-        RIGHT JOIN deal_asins d
-            ON d.asin = o.asin
-            AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') 
-                BETWEEN TO_DATE(d.start_datetime,'YYYY-MM-DD') 
-                AND TO_DATE(d.end_datetime, 'YYYY-MM-DD')
-    WHERE o.region_id = 1
+        o.asin,
+        o.customer_shipment_item_id,
+        o.order_datetime,
+        o.shipped_units
+    FROM "andes"."booker"."d_unified_cust_shipment_items" o,
+        deal_date_ranges
+    WHERE TO_DATE(o.order_datetime, 'YYYY-MM-DD') >= min_date
+        AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') <= max_date
+        AND o.region_id = 1
         AND o.marketplace_id = 7 
         AND o.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
-    GROUP BY d.asin
 );
 
 
@@ -63,26 +69,24 @@ DROP TABLE IF EXISTS t4w_promo_asp;
 CREATE TEMP TABLE t4w_promo_asp AS (
     SELECT 
         d.asin,
+        SUM(o.shipped_units) as shipped_units,
         AVG(cp.revenue_share_amt / o.shipped_units) as asp
-    FROM  "andes"."booker"."d_unified_cust_shipment_items" o
+    FROM filtered_shipments o
         RIGHT JOIN deal_asins d
             ON o.asin = d.asin
-            AND o.marketplace_id=d.marketplace_key
-            AND o.region_id=d.region_id
+            -- AND o.marketplace_id=d.marketplace_key
+            -- AND o.region_id=d.region_id
             -- and o.gl_product_group = d.gl_product_group
         INNER JOIN andes.contribution_ddl.o_wbr_cp_na cp
             ON o.customer_shipment_item_id = cp.customer_shipment_item_id 
             AND o.asin = cp.asin
             AND o.marketplace_id = cp.marketplace_id
             AND o.region_id = cp.region_id
-    WHERE d.region_id = 1
-        AND d.marketplace_key = 7 
-        AND o.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
-        -- t4w prior to promo start date
-        AND o.order_datetime 
-            BETWEEN TO_DATE('2025-07-08', 'YYYY-MM-DD')     -- promo start day
+     -- filter for t4w prior to promo start date
+    WHERE o.order_datetime 
+        BETWEEN TO_DATE('2025-07-08', 'YYYY-MM-DD')     -- promo start day
                 - interval '29 days'
-            AND TO_DATE('2025-07-08', 'YYYY-MM-DD')         -- promo start day
+        AND TO_DATE('2025-07-08', 'YYYY-MM-DD')         -- promo start day
                 - interval '1 days'
     GROUP BY d.asin
 );
