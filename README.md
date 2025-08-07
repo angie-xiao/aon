@@ -36,7 +36,6 @@ for `paws_promotion_id`, you must format it as <span style="color: coral">number
 * Use [inclauserator](https://inclauserator.corp.amazon.com/inclauserator/submit) to add quotation marks around your list of PAWS Promo IDs
 * Edit query as per your needs
     * For `WHERE` clause in `filtered_promos`, filter for your deal ASINs' `paws_promo_id`s (based on Deal SMEs' input)
-    * For `WHERE` clause in the `t4w_promo_asp`, filter for T4W period based on your promo start date 
 * Run [query](https://github.com/angie-xiao/aon/blob/main/scripts/coop_per_asin.sql) on [workbench](https://datacentral.a2z.com/workbench)
 
 ### 1.4 Go back to the `aon_deals.xlsx` file you just created
@@ -63,9 +62,53 @@ Your computer is now ready to run the Python script.
 
 ## 3. Run Python Script
 
-### 3.1 Let’s first find your file path by right click on the excel file you just saved on desktop
+### 3.1 Example directroy 
 
-<img src="./screenshots/copy_to_path.png" alt="drawing" width="250"/>
+* Directory structure used in this instruction manual looks like below -
 
+    ```
+    .
+    ├── aon/
+    |   │
+    │   ├── data/
+    │   │    └── aon_dealx.xlsx
+    │   │
+    │   ├── scripts/
+    │       ├── analytics.py
+    │       └── coop_per_asin.sql
+
+    ```
+
+* You can save the data and scripts wherever you like. But if you want to follow the same structure as your example and save the base folder `aon` on your Desktop, your directory would look something like below -
+
+    ```
+    C:\Users\yourUserName\Desktop\aon\scripts
+    ```
 
 ### 3.2 Call python script in terminal
+
+* First, change the directory to where the scripts are saved. It should look something like this - 
+    
+    ```
+    cd "C:\Users\aqxiao\DS BI\AON\aon\scripts"
+    ```
+
+    **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
+    <span style="color:red">**Add**</span> quotations marks around your path.
+
+* Next, call Python script
+
+    ```
+    python analytics.py
+    ```
+
+* Then you'll get the prompts to input your input and output file paths. These could be the same folder.
+
+    <img src="./screenshots/dir.png" alt="drawing" width="450"/>
+
+    **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
+    <span style="color:red">**DO NOT**</span> Add quotations marks around your path.
+
+* The script will do all of the analytics from here. Once it's done, you should see the completion message - 
+
+    <img src="./screenshots/completion.png" alt="drawing" width="550"/>
