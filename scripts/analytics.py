@@ -4,12 +4,14 @@ import numpy as np
 import os 
 
 # %%
-user_input_dir = input("\nPlease enter the path to your aon_deals.xlsx file: \n")
-user_output_dir = input("\nPlease enter the directory you wish to store your output: \n")
+current_directory = os.getcwd()
+base_folder = os.path.dirname(current_directory)
+data_folder = os.path.join(base_folder, "data")
 
-input_path = os.path.join(user_input_dir, 'aon_deals.xlsx')
-output_path = os.path.join(user_output_dir, 'output.xlsx')
+input_path = os.path.join(data_folder,  'aon_deals.xlsx')
+output_path = os.path.join(data_folder,  'output.xlsx')
 
+# print(output_path)
 #%%
 print("\n"+"*" * 15 + "  Starting to Analyze  " + "*" * 15 + "\n")
 deal_sme_input_df = pd.read_excel(input_path, sheet_name='DEAL SME INPUT')
@@ -85,10 +87,9 @@ col_order = [
 
 # df.head(3)
 
-# %%
 
 df[col_order].to_excel(output_path, index=False)
 
-print("\n"+"*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
-print("*" * 8 + f"  Output saved to {output_path}.  " + "*" * 8 + "\n")
+print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
+print("\n" + "*" * 8 + f"  Output saved to {output_path}.  " + "*" * 8 + "\n")
 

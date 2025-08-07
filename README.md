@@ -87,7 +87,18 @@ Your computer is now ready to run the Python script.
 
 ### 3.2 Call python script in terminal
 
-* First, change the directory to where the scripts are saved. It should look something like this - 
+* First, find Terminal from Menu.
+
+    <img src="./screenshots/terminal.png" alt="drawing" width="450"/>
+
+
+* Find the directory where you're storing the scripts in your File Explorer. Copy that address.
+
+
+    <img src="./screenshots/path.png" alt="drawing" width="650"/>
+
+
+* Then change directory like below with your own directory path. It should look something like this - 
     
     ```
     cd "C:\Users\aqxiao\DS BI\AON\aon\scripts"
@@ -95,7 +106,7 @@ Your computer is now ready to run the Python script.
 
     **⚠️ IMPORTANT ⚠️**
 
-    <span style="color:red">**Add**</span> quotations marks around your path.
+    You must <span style="color:red">**add quotations marks around your path**</span>.
 
 * Next, call Python script
 
@@ -103,14 +114,8 @@ Your computer is now ready to run the Python script.
     python analytics.py
     ```
 
-* Then you'll get the prompts to input your input and output file paths. These could be the same folder.
-
-    <img src="./screenshots/dir.png" alt="drawing" width="450"/>
-
-    **⚠️ IMPORTANT ⚠️**
-
-    <span style="color:red">**DO NOT**</span> Add quotations marks around your path.
-
 * The script will do all of the analytics from here. Once it's done, you should see the completion message - 
 
     <img src="./screenshots/completion.png" alt="drawing" width="550"/>
+
+* Now you can find your output in the path described above.
