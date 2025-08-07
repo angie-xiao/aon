@@ -94,6 +94,7 @@ Your computer is now ready to run the Python script.
     ```
 
     **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
+
     <span style="color:red">**Add**</span> quotations marks around your path.
 
 * Next, call Python script
@@ -107,6 +108,7 @@ Your computer is now ready to run the Python script.
     <img src="./screenshots/dir.png" alt="drawing" width="450"/>
 
     **<span style="color:#B84F53"> ⚠️ IMPORTANT ⚠️</span>**
+    
     <span style="color:red">**DO NOT**</span> Add quotations marks around your path.
 
 * The script will do all of the analytics from here. Once it's done, you should see the completion message - 
