@@ -1,73 +1,41 @@
 -- connect deals with specific asins
 DROP TABLE IF EXISTS filtered_promos;
 CREATE TEMP TABLE filtered_promos AS (
-    SELECT 
+    SELECT DISTINCT
         p.paws_promotion_id,
         p.start_datetime,
         p.end_datetime,
         p.promotion_key,
         p.region_id,
-        p.marketplace_key
+        p.marketplace_key 
     FROM "andes"."pdm"."dim_promotion" p
-    WHERE p.region_id = 1
-        AND p.marketplace_key = 7
-        AND p.paws_promotion_id::VARCHAR IN (
-        -- enter your promo ids here
-        '311145594913','311167751413','311219030313','311245295813','311245506513','311245733313','311255377613','311255589213','311261969213','311262003013',
-        '311336277013','311342649413','311362351513','311362351913','311380697913','311382901713','311385329913','311385548713','311385549013','311418569013',
-        '311422987013','311435697413','311435928513','311435929513','311435929813','311435938913','311435940713','311436153613','311436160413','311445769613',
-        '311445782213','311449937313','311450377213','311453249413','311453256213','311462968413','311467130613','311480984613','311485187913','311485202013',
-        '311485410813','311485422813','311488039413','311488252813','311488265213','311488723913','311497492313','311503428013','311503431013','311509809413',
-        '311512016013','311512031313','311516430413','311516434113','311516887113','311516888513','311516897713','311521046213','311521047513','311521048313',
-        '311521485113','311523684313','311523904113','311523905313','311523905813','311526333913','311526334613','311526337313','311526338413','311526765513',
-        '311526771413','311526994913','311526995013','311531795213','311531798113','311533989913','311533990913','311534183613','311534220213','311536406813',
-        '311539828613','311539833113','311544008613','311544008713','311551870313','311551870413','311555641313','311555642213','311555858713','311556082213',
-        '311556082313','311558279013','311558279213','311558281013','311558281913','311558743713','311558744313','311558744613','311558971313','311561145613',
-        '311561148313','311561162413','311561165813','311561367113','311568197913','311568207613','311568209313','311572598913','311575016613','311579857913',
-        '311592717413','311592721013','311592741213','311592943513','311592960613','311602392413','311602392613','311603793913','311608191613','311618335413',
-        '311622358613','311649466113','311649485713','311649486213','311649704413','311649704813','311649706413','311649902713','311649912113','311649922813',
-        '311649923013','311654078813','311654088813','311654092713','311666906113','311667342613','311667342913','311680332313','311680340713','311680351713',
-        '311684731913','311695539213','311703873413','311712117613','311712120113','311712128213','311712134813','311712137613','311712335613','311712556513',
-        '311731471713','311731471813','311731472113','311731691913','311736114313','311736115413','311742262213','311742280613','311742280913','311742281013',
-        '311756780613','311765071713','311765072213','311793724413','311797900113','311800127113','311800127313','311800334413','311800343713','311800345813',
-        '311800345913','311800547313','311800551313','311800569713','311800571013','311800571513','311800774313','311800788313','311800995713','311801009513',
-        '311807238013','311823746713','311823758713','311857823713','311857825613','311857831013','311857833613','311857834213','311858271913','311858276013',
-        '311867361613','311889892213','311891281213','311893701313','311893701413','311910315613','311931224313','311968134813','311968146513','311968365613',
-        '311968586713','311975392013','311975613813','311984763713','311991582513','311991592013','311991800613','311991805113','311992247913','312000775213',
-        '312011623913','312011625513','312034271113','312034484113','312034490513','312034701913','312034705313','312042324013','312042343513','312055721913',
-        '312055722613','312060123413','312069662913','312069871313','312069872513','312069885013','312069893113','312082899013','312092114313','312112684413',
-        '312112689113','312118874113','312126948113','312129363313','312140534313','312150867113','312161355313','312161356813','312161370313','312171513913',
-        '312171745813','312186289913','312186515213','312189134813','312229603213','312239396813','312245159013','312245163913','312245172913','312245370413',
-        '312245607113','312249772813','312249779813','312249789813','312254157413','312254157613','312257460413','312257893013','312260746813','312284734313',
-        '312296496713','312296507313','312303323413','312315883413','312356861213','312356861813','312382404513','312382631313','312403287313','312403512813',
-        '312456038013','312456268513','312460878113','312468804813','312471002513','312471003013','312479833613','312480501713','312480501813','312480505813',
-        '312480512813','312480716813','312480722013','312480938913','312480939213','312481380413','312483965213','312494525713','312496947613','312525153313',
-        '312527352613','312535703613','312538212813','312550125313','312560392213','312560606313','312562810213','312604117813','312608739313','312611158613',
-        '312611162013','312622779013','312622779613','312627178813','312637788313','312637809213','312638005913','312658964913','312658968413','312673730513',
-        '312680511513','312682692413','312682912713','312695520313','312775738013','312778804513','312788516713','312800543813','312872222213','312872226213',
-        '312872443013','312872444313','312875082313','312875519113','312875966613','312886107013','312886110413','312886751313','312886965613','312886984113',
-        '312895986013','312944027813','312948184913','312960754213','313017600313','313018036413','313032871913','313043183813','313043401013','313084780613',
-        '313087859713','313087863713','313091357313','313110737713','313110753513','313111178613','313118935413','313118936813','313143205113','313150913313',
-        '313168937013','313171341013','313171361813','313177245913','313177256913','313195562013','313233082213'
-    )      
-);
+    WHERE p.region_id = 1                                           -- NA
+        AND p.marketplace_key = 7                                   -- CA
+        AND p.promotion_product_group_key 
+            IN (510, 364, 325, 199, 194, 121, 75)                  -- CONSUMABLES
+        AND TO_DATE(start_datetime, 'YYYY-MM-DD') 
+            BETWEEN TO_DATE('2025-07-01', 'YYYY-MM-DD')             -- edit the time window
+            AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
+        AND TO_DATE(end_datetime, 'YYYY-MM-DD')
+            BETWEEN TO_DATE('2025-07-01', 'YYYY-MM-DD')             -- edit the time window
+            AND TO_DATE('2025-07-31', 'YYYY-MM-DD'));
 
 
 -- get promo pricing & vendor funding
 DROP TABLE IF EXISTS deal_asins;
 CREATE TEMP TABLE deal_asins AS (
-    SELECT
+    SELECT DISTINCT
         p.*,
         pa.asin,
         pa.asin_approval_status,
         pa.promotion_pricing_amount,
         pa.total_vendor_funding
     FROM filtered_promos p
-        JOIN "andes"."pdm"."dim_promotion_asin" pa
+        INNER JOIN "andes"."pdm"."dim_promotion_asin" pa
             ON pa.promotion_key = p.promotion_key
             AND pa.region_id = p.region_id
             AND p.marketplace_key = pa.marketplace_key
-    -- WHERE pa.asin_approval_status = 'APPROVED'
+    WHERE UPPER(pa.asin_approval_status) = 'APPROVED'
 );
 
 
@@ -89,36 +57,47 @@ CREATE TEMP TABLE deal_date_ranges AS  (
 -- filter for shipped units from T4W pre event to event end date
 DROP TABLE IF EXISTS filtered_shipments;
 CREATE TEMP TABLE filtered_shipments AS  (
-    with cte as (
-        SELECT 
-            min(min_date) as min_date, 
-            max(max_date) as max_date
-        from deal_date_ranges
-    )
-    SELECT 
+
+    SELECT DISTINCT 
         o.asin,
         o.customer_shipment_item_id,
         o.order_datetime,
         o.shipped_units
-    FROM "andes"."booker"."d_unified_cust_shipment_items" o, 
-        cte
-    WHERE o.region_id = 1              -- NA
-        AND o.marketplace_id = 7       -- CA
-        AND TO_DATE(o.order_datetime,'YYYY-MM-DD')
-            BETWEEN TO_DATE(min_date,'YYYY-MM-DD') - interval '29 days'
-            AND TO_DATE(max_date, 'YYYY-MM-DD')
-        AND o.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)    -- consumables
+    FROM "andes"."booker"."d_unified_cust_shipment_items" o
+    WHERE o.region_id = 1                                    -- NA
+        AND o.marketplace_id = 7                             -- CA
+        AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') 
+            BETWEEN TO_DATE('2025-07-01', 'YYYY-MM-DD')      -- edit the time window
+            AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
+        AND o.gl_product_group 
+            IN (510, 364, 325, 199, 194, 121, 75)            -- CONSUMABLES
         AND o.shipped_units > 0
         AND o.is_retail_merchant = 'Y'
-        AND o.order_condition != 6      -- not cancelled/returned
+        AND o.order_condition != 6                           -- not cancelled/returned
 );
 
 
 --  T4W revenue, shipped units, & ASP
+DROP TABLE IF EXISTS t4w;
 CREATE TEMP TABLE t4w AS (
     SELECT
         o.asin,
-        SUM(cp.revenue_share_amt) / SUM(o.shipped_units) AS t4w_asp
+        COALECE(
+            SUM(
+                CASE 
+                    WHEN cp.revenue_share_amt IS NOT NULL
+                    THEN cp.revenue_share_amt
+                    ELSE 0
+                END
+            ) / 
+            SUM(
+                CASE 
+                    WHEN o.shipped_units IS NOT NULL
+                    THEN o.shipped_units
+                    ELSE 0
+                END            
+            ),
+        0) AS t4w_asp
     FROM filtered_shipments o
         LEFT JOIN deal_date_ranges dr 
             ON o.asin = dr.asin
@@ -132,14 +111,15 @@ CREATE TEMP TABLE t4w AS (
 );
 
 
--- final output
+-- summing shipped units
+DROP TABLE IF EXISTS deals_asin_details;
 CREATE TEMP TABLE deals_asin_details AS (
-    SELECT 
+    SELECT DISTINCT
         da.asin,
         da.paws_promotion_id,
         da.start_datetime,
         da.end_datetime,
-        da.promotion_key,
+        -- da.promotion_key,    -- could be multiple for the same deal (with each changes made to deal)
         da.region_id,
         da.marketplace_key,
         t.t4w_asp as t4w_asp,
@@ -168,4 +148,28 @@ CREATE TEMP TABLE deals_asin_details AS (
 );
 
 
-SELECT * FROM deals_asin_details
+-- add vendor, gl...
+DROP TABLE IF EXISTS deals_asin_vendor;
+CREATE TEMP TABLE deals_asin_vendor AS (  
+    SELECT 
+        a.*,
+        maa.gl_product_group,
+        mam.dama_mfg_vendor_code as vendor_code,
+        v.company_code,
+        v.company_name
+    FROM deals_asin_details a
+        INNER JOIN andes.booker.d_mp_asin_attributes maa
+            ON maa.asin = a.asin
+            AND maa.marketplace_id = 7
+            AND maa.region_id =1
+            AND maa.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
+        LEFT JOIN andes.BOOKER.D_MP_ASIN_MANUFACTURER mam
+            ON mam.asin = a.asin
+            AND mam.marketplace_id = 7
+            AND mam.region_id = 1
+        LEFT JOIN andes.roi_ml_ddl.VENDOR_COMPANY_CODES v
+            ON v.vendor_code = mam.dama_mfg_vendor_code
+    WHERE a.paws_promotion_id IS NOT NULL
+);
+
+SELECT * FROM deals_asin_vendor

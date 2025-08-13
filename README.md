@@ -1,53 +1,31 @@
 # AON Deal Incremental Gains Calculation
 
-## 0. Workflow
-<img src="./screenshots/flowchart.png" alt="drawing" width="650"/>
+## 1. SQL 
 
+### 1.1 Edit your query as needed
 
-## 1. Data Prep
+* Path where the script could be found may look something like this - 
 
-*The goal of Section One is to create an excel file with two tabs that we will input into a Python script in Section Two.*
+        C:\Users\yourUserName\Desktop\aon\scripts\coop_per_asin.sql
 
-### 1.1 Receive table from Deal SMEs with information shown as below:
+* Fields subject to change:
+    * region (i.e., `region_id`) & marketplace (i.e., `marketplace_key`)
+    * GL (i.e., `promotion_product_group_key`)
+    * promotion time window (i.e., `start_datetime BETWEEN date1 AND date2`)
 
-| asin | paws_promotion_id | created_by |
-|---|---|---|
-| B0CVHHF5MR | 311891281213| aqxiao |
+### 1.2 Run your edited script on [workbench](https://datacentral.a2z.com/workbench)
 
+### 1.3 Save your query locally
+* Path where your data is saved could look something like this
 
-### 1.2 Create a new excel file
-* Let’s save it on desktop and name it `aon_deals.xlsx`
-* Create the first tab as DEAL SME INPUT`.
-* Reformat excel sheet Deal SMEs shared like table below 
-* Save file
+        C:\Users\yourUserName\Desktop\aon\data\aon_deals.xlsx
 
+## 2. [Optional] Python
 
-#### **⚠️ IMPORTANT ⚠️**
-for `paws_promotion_id`, you must format it as <span style="color: coral">numbers</span> and set <span style="color: coral">decimal place to 0.</span>
+Python script in this section will calculate the incremental gains for you in 3 lines. That said, though it's encouraged to leverage automation to avoid possible human errors, manual calculation is also a valid option if that's your preference.
 
-##### Wrong Format
-<img src="./screenshots/wrong_format.png" alt="drawing" width="650"/>
-
-##### Correct Format
-<img src="./screenshots/correct_format.png" alt="drawing"  width="650"/>
-
-
-### 1.3 Query
-* Use [inclauserator](https://inclauserator.corp.amazon.com/inclauserator/submit) to add quotation marks around your list of PAWS Promo IDs
-* Edit query as per your needs
-    * For `WHERE` clause in `filtered_promos`, filter for your deal ASINs' `paws_promo_id`s (based on Deal SMEs' input)
-* Run [query](https://github.com/angie-xiao/aon/blob/main/scripts/coop_per_asin.sql) on [workbench](https://datacentral.a2z.com/workbench)
-
-### 1.4 Go back to the `aon_deals.xlsx` file you just created
-* Create second tab. Let’s call it `QUERY OUTPUT`.
-* Download result and save it to the `QUERY OUTPUT` tab you just created. 
-
-#### **⚠️ IMPORTANT ⚠️**
-similar to formatting step in Section 1.2, you must also format `paws_promotion_id` in `QUERY OUTPUT` as numbers and set decimal place to 0.</span>*
-
-
-## 2. Install Python & Required Libraries
-*Now we need to make sure that your computer is ready to run a python script.*
+### 2.1 Install Python & Required Libraries
+Now we need to make sure that your computer is ready to run a python script.
 * Install [Python](http://softwarecenter:SoftwareID=ScopeId_6C900AD6-A53B-4C44-B96C-1002E20C5DF9/Application_beaa76ce-05e1-481d-bec0-98dcc6b16f38) through Software Center
 
 * Open terminal. Run following commands - one line at a time.
@@ -60,9 +38,9 @@ pip3 install openpyxl --upgrade
 Your computer is now ready to run the Python script.
 
 
-## 3. Run Python Script
+### 2.2 Run Python Script
 
-### 3.1 Example directroy 
+#### 2.2.1 Example directroy 
 
 * Directory structure used in this instruction manual looks like below -
 
@@ -71,7 +49,7 @@ Your computer is now ready to run the Python script.
     ├── aon/
     |   │
     │   ├── data/
-    │   │    └── aon_dealx.xlsx
+    │   │    └── aon_deals.xlsx
     │   │
     │   ├── scripts/
     │       ├── analytics.py
@@ -85,7 +63,7 @@ Your computer is now ready to run the Python script.
     C:\Users\yourUserName\Desktop\aon\scripts
     ```
 
-### 3.2 Call python script in terminal
+#### 2.2.2 Call python script in terminal
 
 * First, find Terminal from Menu.
 
