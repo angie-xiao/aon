@@ -1,3 +1,7 @@
+-- filter out oih
+-- + user
+
+
 -- connect deals with specific asins
 DROP TABLE IF EXISTS filtered_promos;
 CREATE TEMP TABLE filtered_promos AS (
@@ -7,7 +11,8 @@ CREATE TEMP TABLE filtered_promos AS (
         p.end_datetime,
         p.promotion_key,
         p.region_id,
-        p.marketplace_key 
+        p.marketplace_key,
+        p.purpose
     FROM "andes"."pdm"."dim_promotion" p
     WHERE p.region_id = 1                                           -- NA
         AND p.marketplace_key = 7                                   -- CA
@@ -82,7 +87,7 @@ DROP TABLE IF EXISTS t4w;
 CREATE TEMP TABLE t4w AS (
     SELECT
         o.asin,
-        COALECE(
+        COALESCE(  -- This was misspelled as COALECE
             SUM(
                 CASE 
                     WHEN cp.revenue_share_amt IS NOT NULL
@@ -90,13 +95,13 @@ CREATE TEMP TABLE t4w AS (
                     ELSE 0
                 END
             ) / 
-            SUM(
+            NULLIF(SUM(  -- Added NULLIF to prevent division by zero
                 CASE 
                     WHEN o.shipped_units IS NOT NULL
                     THEN o.shipped_units
                     ELSE 0
                 END            
-            ),
+            ), 0),
         0) AS t4w_asp
     FROM filtered_shipments o
         LEFT JOIN deal_date_ranges dr 
@@ -110,6 +115,7 @@ CREATE TEMP TABLE t4w AS (
     GROUP BY o.asin
 );
 
+    
 
 -- summing shipped units
 DROP TABLE IF EXISTS deals_asin_details;
@@ -119,11 +125,11 @@ CREATE TEMP TABLE deals_asin_details AS (
         da.paws_promotion_id,
         da.start_datetime,
         da.end_datetime,
-        -- da.promotion_key,    -- could be multiple for the same deal (with each changes made to deal)
         da.region_id,
         da.marketplace_key,
-        t.t4w_asp as t4w_asp,
+        da.purpose,
         da.asin_approval_status,
+        t.t4w_asp as t4w_asp,
         da.promotion_pricing_amount,
         da.total_vendor_funding,
         SUM(fs.shipped_units) as shipped_units
@@ -141,6 +147,7 @@ CREATE TEMP TABLE deals_asin_details AS (
         da.promotion_key,
         da.region_id,
         da.marketplace_key,
+        da.purpose,
         t.t4w_asp,
         da.asin_approval_status,
         da.promotion_pricing_amount,
