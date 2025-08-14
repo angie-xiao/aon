@@ -1,0 +1,15 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+
+
+# Ignore the virtual environment directory
+.venv/
+
+# Ignore workbench files
+*.code-workspace
+
+# Ignore data folder
+data/
+
+# Ignore data files
+*.xlsx
+*.csv
