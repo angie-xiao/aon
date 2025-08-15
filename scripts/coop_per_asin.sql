@@ -12,7 +12,8 @@ CREATE TEMP TABLE filtered_promos AS (
         p.promotion_key,
         p.region_id,
         p.marketplace_key,
-        p.purpose
+        p.purpose,
+        p.coop_agreement_id
     FROM "andes"."pdm"."dim_promotion" p
     WHERE p.region_id = 1                                           -- NA
         AND p.marketplace_key = 7                                   -- CA
@@ -123,6 +124,7 @@ CREATE TEMP TABLE deals_asin_details AS (
     SELECT DISTINCT
         da.asin,
         da.paws_promotion_id,
+        da.coop_agreement_id,
         da.start_datetime,
         da.end_datetime,
         da.region_id,
@@ -142,6 +144,7 @@ CREATE TEMP TABLE deals_asin_details AS (
     GROUP BY 
         da.asin,
         da.paws_promotion_id,
+        da.coop_agreement_id,
         da.start_datetime,
         da.end_datetime,
         da.promotion_key,
@@ -160,6 +163,7 @@ DROP TABLE IF EXISTS deals_asin_vendor;
 CREATE TEMP TABLE deals_asin_vendor AS (  
     SELECT 
         a.*,
+        c.owned_by_user_id as owned_vm,
         maa.gl_product_group,
         mam.dama_mfg_vendor_code as vendor_code,
         v.company_code,
@@ -176,6 +180,8 @@ CREATE TEMP TABLE deals_asin_vendor AS (
             AND mam.region_id = 1
         LEFT JOIN andes.roi_ml_ddl.VENDOR_COMPANY_CODES v
             ON v.vendor_code = mam.dama_mfg_vendor_code
+        LEFT JOIN andes.rs_coop_ddl.COOP_AGREEMENTS c
+            ON c.agreement_id = a.coop_agreement_id
     WHERE a.paws_promotion_id IS NOT NULL
 );
 

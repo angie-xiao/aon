@@ -8,8 +8,8 @@ current_directory = os.getcwd()
 base_folder = os.path.dirname(current_directory)
 data_folder = os.path.join(base_folder, "data")
 
-input_path = os.path.join(data_folder,  'aon_deals.xlsx')
-output_path = os.path.join(data_folder,  'output.xlsx')
+input_path = os.path.join(data_folder, 'aon_deals.xlsx')
+output_path = os.path.join(data_folder, 'output.xlsx')
 
 # print(output_path)
 #%%
@@ -81,15 +81,18 @@ df['incremental_gains'] = np.where(
 )
 
 col_order = [
-    'asin','asin_approval_status','created_by','discount_per_unit','end_datetime','incremental_gains','incremental_per_unit','marketplace_key','paws_promotion_id','promotion_key',
-    'promotion_pricing_amount','region_id','shipped_units','start_datetime','t4w_asp','total_vendor_funding'
+    'region_id', 'marketplace_key', 'paws_promotion_id','promotion_key', 
+    'created_by', 'start_datetime', 'end_datetime', 'asin','asin_approval_status',
+    't4w_asp', 'promotion_pricing_amount', 'discount_per_unit', 'total_vendor_funding', 'shipped_units',
+    'incremental_gains', 'incremental_per_unit'
 ]
 
-# df.head(3)
+df = df[col_order].sort_values(by=['marketplace_key', 'region_id', 'created_by'])
 
-
-df[col_order].to_excel(output_path, index=False)
+df.to_excel(output_path, index=False)
 
 print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
 print("\n" + "*" * 8 + f"  Output saved to {output_path}.  " + "*" * 8 + "\n")
 
+
+# %%

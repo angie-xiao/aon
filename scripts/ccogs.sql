@@ -27,13 +27,8 @@ CREATE TEMP TABLE agreement_coop AS (
         a.funding_type_name,
         a.activity_type_name,
         TO_CHAR(TO_DATE(r.receive_day, 'YYYY-MM-DD'), 'YYYY-MM') as coop_receive_yr_mo,
-        SUM(
-            case 
-                when r.coop_amount_currency = 'CAD' 
-                then (coop_amount/1.43) 
-                else coop_amount 
-            end
-        ) as coop_amount_usd                                                        
+        r.coop_amount_currency,
+        SUM(r.coop_amount) as coop_amount
     FROM filtered_agreements a
         INNER JOIN andes.rs_coop_ddl.coop_dsi_calculation_results r
         ON a.agreement_id = r.agreement_id
@@ -52,7 +47,8 @@ CREATE TEMP TABLE agreement_coop AS (
         a.owned_by_user_id,
         a.funding_type_name,
         a.activity_type_name,
-        TO_CHAR(TO_DATE(r.receive_day, 'YYYY-MM-DD'), 'YYYY-MM')
+        TO_CHAR(TO_DATE(r.receive_day, 'YYYY-MM-DD'), 'YYYY-MM'),
+        r.coop_amount_currency
 );
 
 DROP TABLE IF EXISTS vendor_agreements;
@@ -67,11 +63,11 @@ CREATE TEMP TABLE vendor_agreements AS (
         a.funding_type_name,
         a.activity_type_name,
         a.coop_receive_yr_mo,
-        a.coop_amount_usd
+        a.coop_amount
     FROM agreement_coop a
         LEFT JOIN  andes.vendorcode_management.o_vendors v
         ON a.vendor_id = v.vendor_id
-    WHERE coop_amount_usd <> 0
+    WHERE coop_amount <> 0
 );
 
 select * from vendor_agreements;
