@@ -2,6 +2,9 @@
 import pandas as pd
 import numpy as np
 import os 
+import openpyxl
+from openpyxl.utils.dataframe import dataframe_to_rows
+
 
 # %%
 current_directory = os.getcwd()
@@ -9,10 +12,10 @@ base_folder = os.path.dirname(current_directory)
 data_folder = os.path.join(base_folder, "data")
 
 input_path = os.path.join(data_folder, 'aon_deals.xlsx')
-output_path = os.path.join(data_folder, 'output.xlsx')
+output_path = os.path.join(data_folder, 'deal_incremental_gains_output.xlsx')
 
 # print(output_path)
-#%%
+
 print("\n"+"*" * 15 + "  Starting to Analyze  " + "*" * 15 + "\n")
 deal_sme_input_df = pd.read_excel(input_path, sheet_name='DEAL SME INPUT')
 
@@ -29,7 +32,7 @@ deal_sme_input_df['paws_promotion_id'] = np.where(
 deal_sme_input_df['paws_promotion_id'] = deal_sme_input_df['paws_promotion_id'].astype(int)
 # deal_sme_input_df.tail(5)
 
-# %%
+
 # same for query output tab
 query_output_df = pd.read_excel('../data/aon_deals.xlsx', sheet_name='QUERY OUTPUT')
 query_output_df['paws_promotion_id'] = np.where(
@@ -43,7 +46,6 @@ query_output_df['paws_promotion_id'] = np.where(
 query_output_df['paws_promotion_id'] = query_output_df['paws_promotion_id'].astype(int)
 # query_output_df.tail(5)
 
-# %%
 
 ### join dataframes ###
 df = pd.merge(
@@ -53,7 +55,7 @@ df = pd.merge(
 )
 
 # df.head(3)
-# %% 
+
 ### INCREMENTAL GAINS CALCULATOR ###
 
 # discount per unit
@@ -88,10 +90,30 @@ col_order = [
 ]
 
 df = df[col_order].sort_values(by=['marketplace_key', 'region_id', 'created_by'])
-
-df.to_excel(output_path, index=False)
-
 print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
+
+# %% 
+df_vendor = df
+
+
+# %%
+wb = openpyxl.Workbook() 
+
+# write ASIN level output
+ws = wb.create_sheet('ASIN Level')
+rows = dataframe_to_rows(df,index=False)
+for r_idx, row in enumerate(rows, 1):
+    for c_idx, value in enumerate(row, 1):
+         ws.cell(row=r_idx, column=c_idx, value=value)
+
+# write vendor level output
+
+wb.save(output_path)
+
+         
+
+
+# %%
 print("\n" + "*" * 8 + f"  Output saved to {output_path}.  " + "*" * 8 + "\n")
 
 

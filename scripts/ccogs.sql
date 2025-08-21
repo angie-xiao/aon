@@ -1,19 +1,4 @@
-DROP TABLE IF EXISTS filtered_agreements;
-CREATE TEMP TABLE filtered_agreements AS (
-    SELECT 
-        a.agreement_id,
-        a.signed_flag,
-        a.vendor_id,
-        a.agreement_title,
-        TO_CHAR(TO_DATE(a.agreement_start_date, 'YYYY-MM-DD'), 'YYYY-MM') as agreement_start_date,
-        a.owned_by_user_id,
-        a.funding_type_name,
-        a.activity_type_name
-    FROM andes.rs_coop_ddl.COOP_AGREEMENTS a
-    WHERE a.region_id=1
-        AND a.marketplace_id = 7                                                    -- CA
-        AND a.product_group_id IN (510, 364, 325, 199, 194, 121, 75)                -- consumables
-);
+ 
 
 DROP TABLE IF EXISTS agreement_coop;
 CREATE TEMP TABLE agreement_coop AS (
@@ -54,20 +39,28 @@ CREATE TEMP TABLE agreement_coop AS (
 DROP TABLE IF EXISTS vendor_agreements;
 CREATE TEMP TABLE vendor_agreements AS (
     SELECT
+        a.coop_receive_yr_mo,
+        a.agreement_start_date,
         a.agreement_id, 
+        maa.gl_product_group,
         v.primary_vendor_code,
         v.vendor_name,
-        a.agreement_title,
-        a.agreement_start_date,
-        a.owned_by_user_id,
         a.funding_type_name,
         a.activity_type_name,
-        a.coop_receive_yr_mo,
-        a.coop_amount
+        a.agreement_title,
+        a.owned_by_user_id,
+        a.coop_amount,
+        a.coop_amount_currency
     FROM agreement_coop a
         LEFT JOIN  andes.vendorcode_management.o_vendors v
-        ON a.vendor_id = v.vendor_id
+            ON a.vendor_id = v.vendor_id
+        INNER JOIN andes.booker.d_mp_asin_attributes maa
+            ON maa.asin = a.asin
+            AND maa.marketplace_id = 7
+            AND maa.region_id =1
+            AND maa.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
     WHERE coop_amount <> 0
+        AND UPPER(funding_type_name) != 'ACCRUAL'
 );
 
 select * from vendor_agreements;
