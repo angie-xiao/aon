@@ -162,12 +162,22 @@ CREATE TEMP TABLE deals_asin_details AS (
 DROP TABLE IF EXISTS deals_asin_vendor;
 CREATE TEMP TABLE deals_asin_vendor AS (  
     SELECT 
-        a.*,
-        c.owned_by_user_id as owned_vm,
+        a.region_id,
+        a.marketplace_key,
+        a.paws_promotion_id,
+        a.purpose,
+        a.asin,
+        a.asin_approval_status,
+        a.start_datetime,
+        a.end_datetime,
         maa.gl_product_group,
-        mam.dama_mfg_vendor_code as vendor_code,
         v.company_code,
-        v.company_name
+        v.company_name,
+        mam.dama_mfg_vendor_code as vendor_code,
+        a.t4w_asp,
+        a.promotion_pricing_amount,
+        a.total_vendor_funding,
+        a.shipped_units
     FROM deals_asin_details a
         INNER JOIN andes.booker.d_mp_asin_attributes maa
             ON maa.asin = a.asin

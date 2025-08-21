@@ -6,7 +6,6 @@ import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 
-# %%
 current_directory = os.getcwd()
 base_folder = os.path.dirname(current_directory)
 data_folder = os.path.join(base_folder, "data")
@@ -56,7 +55,7 @@ df = pd.merge(
 
 # df.head(3)
 
-### INCREMENTAL GAINS CALCULATOR ###
+############### INCREMENTAL GAINS CALCULATOR ###############
 
 # discount per unit
 df['discount_per_unit'] = df['t4w_asp'] - df['promotion_pricing_amount']
@@ -82,38 +81,73 @@ df['incremental_gains'] = np.where(
     df['incremental_gains']
 )
 
+############### PREPPING OUTPUT DFS ###############
+# reorder
 col_order = [
-    'region_id', 'marketplace_key', 'paws_promotion_id','promotion_key', 
+    'region_id', 'marketplace_key', 'paws_promotion_id', 
     'created_by', 'start_datetime', 'end_datetime', 'asin','asin_approval_status',
-    't4w_asp', 'promotion_pricing_amount', 'discount_per_unit', 'total_vendor_funding', 'shipped_units',
-    'incremental_gains', 'incremental_per_unit'
+    'gl_product_group', 'vendor_code', 'company_code', 'company_name',
+    't4w_asp', 'promotion_pricing_amount', 'discount_per_unit', 'total_vendor_funding', 
+    'shipped_units', 'incremental_per_unit','incremental_gains'
 ]
 
+# asin level
 df = df[col_order].sort_values(by=['marketplace_key', 'region_id', 'created_by'])
+df = df[df.incremental_gains!=0]
+
+# dtype
+for col in ['t4w_asp', 'promotion_pricing_amount', 'discount_per_unit', 'total_vendor_funding', 'incremental_per_unit','incremental_gains']:
+    df[col] = df[col].astype(float)
+
+for col in ['shipped_units','region_id','marketplace_key', 'paws_promotion_id', 'gl_product_group']:
+    df[col] = df[col].astype(int)
+
+df['start_year_mo'] = df['start_datetime'].dt.to_period('M')
+df['end_year_mo'] = df['end_datetime'].dt.to_period('M')
+for col in ['start_year_mo','end_year_mo', 'vendor_code', 'company_code', 'company_name']:
+    df[col] = df[col].astype(str)
+
+
+# reset index
+df.reset_index(drop=True, inplace=True)
+df.drop(columns=['start_datetime', 'end_datetime'],inplace=True)
+
+# vendor level
+vendor_tmp = df[[
+    'region_id', 'marketplace_key', 'start_year_mo', 'end_year_mo',
+    'gl_product_group', 'vendor_code', 'company_code', 'company_name',
+    'incremental_gains'    
+]].groupby(['region_id', 'marketplace_key', 'start_year_mo', 'end_year_mo', 'gl_product_group', 'vendor_code', 'company_code', 'company_name']).sum('incremental_gains')
+vendor_tmp.reset_index(inplace=True)
+
+# GL level
+gl_tmp = df[[
+    'region_id', 'marketplace_key', 'gl_product_group', 'start_year_mo', 'end_year_mo',
+    'incremental_gains'    
+]].groupby(['region_id', 'marketplace_key','gl_product_group','start_year_mo', 'end_year_mo']).sum('incremental_gains')
+gl_tmp.reset_index(inplace=True)
+
 print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
 
-# %% 
-df_vendor = df
 
-
-# %%
-wb = openpyxl.Workbook() 
-
-# write ASIN level output
-ws = wb.create_sheet('ASIN Level')
-rows = dataframe_to_rows(df,index=False)
-for r_idx, row in enumerate(rows, 1):
-    for c_idx, value in enumerate(row, 1):
-         ws.cell(row=r_idx, column=c_idx, value=value)
-
-# write vendor level output
+################### WRITE TO EXCEL ###################
+wb = openpyxl.Workbook()
+wb.remove(wb['Sheet'])
+d = {
+    'ASIN Level': df,
+    'Vendor Level': vendor_tmp,
+    'GL Level': gl_tmp
+}
+# write outputs at different levels
+for k,v in d.items():
+    ws = wb.create_sheet(k)
+    rows = dataframe_to_rows(v,index=False)
+    for r_idx, row in enumerate(rows, 1):
+        for c_idx, value in enumerate(row, 1):
+            ws.cell(row=r_idx, column=c_idx, value=value)
 
 wb.save(output_path)
-
          
-
-
-# %%
 print("\n" + "*" * 8 + f"  Output saved to {output_path}.  " + "*" * 8 + "\n")
 
 
