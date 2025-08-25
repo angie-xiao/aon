@@ -13,8 +13,8 @@ current_directory = os.getcwd()
 base_folder = os.path.dirname(current_directory)
 data_folder = os.path.join(base_folder, "data")
 
-input_path = os.path.join(data_folder, "aon_deals.xlsx")
-output_path = os.path.join(data_folder, "deal_incremental_gains_output.xlsx")
+input_path = os.path.join(data_folder, "input.xlsx")
+output_path = os.path.join(data_folder, "output.xlsx")
 
 
 print("\n" + "*" * 15 + "  Starting to Analyze  " + "*" * 15 + "\n")
