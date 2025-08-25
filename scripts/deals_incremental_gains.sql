@@ -24,8 +24,14 @@ CREATE TEMP TABLE filtered_promos AS (
             AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
         AND TO_DATE(end_datetime, 'YYYY-MM-DD')
             BETWEEN TO_DATE('2025-07-01', 'YYYY-MM-DD')             -- edit the time window
-            AND TO_DATE('2025-07-31', 'YYYY-MM-DD'));
+            AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
+        AND coop_agreement_id IS NOT NULL   
+        AND coop_agreement_id != 0       
+        AND paws_promotion_id IS NOT NULL   
+        AND paws_promotion_id != 0
+);
 
+    
 
 -- get promo pricing & vendor funding
 DROP TABLE IF EXISTS deal_asins;
@@ -35,7 +41,7 @@ CREATE TEMP TABLE deal_asins AS (
         pa.asin,
         pa.asin_approval_status,
         pa.promotion_pricing_amount,
-        pa.total_vendor_funding
+        pa.promotion_vendor_funding
     FROM filtered_promos p
         INNER JOIN "andes"."pdm"."dim_promotion_asin" pa
             ON pa.promotion_key = p.promotion_key
@@ -116,8 +122,6 @@ CREATE TEMP TABLE t4w AS (
     GROUP BY o.asin
 );
 
-    
-
 -- summing shipped units
 DROP TABLE IF EXISTS deals_asin_details;
 CREATE TEMP TABLE deals_asin_details AS (
@@ -133,7 +137,7 @@ CREATE TEMP TABLE deals_asin_details AS (
         da.asin_approval_status,
         t.t4w_asp as t4w_asp,
         da.promotion_pricing_amount,
-        da.total_vendor_funding,
+        da.promotion_vendor_funding,
         SUM(fs.shipped_units) as shipped_units
     FROM deal_asins da
         LEFT JOIN t4w t
@@ -154,7 +158,7 @@ CREATE TEMP TABLE deals_asin_details AS (
         t.t4w_asp,
         da.asin_approval_status,
         da.promotion_pricing_amount,
-        da.total_vendor_funding
+        da.promotion_vendor_funding
 );
 
 
@@ -166,6 +170,7 @@ CREATE TEMP TABLE deals_asin_vendor AS (
         a.marketplace_key,
         a.paws_promotion_id,
         a.purpose,
+        a.coop_agreement_id,
         a.asin,
         a.asin_approval_status,
         a.start_datetime,
@@ -176,7 +181,7 @@ CREATE TEMP TABLE deals_asin_vendor AS (
         mam.dama_mfg_vendor_code as vendor_code,
         a.t4w_asp,
         a.promotion_pricing_amount,
-        a.total_vendor_funding,
+        a.promotion_vendor_funding,
         a.shipped_units
     FROM deals_asin_details a
         INNER JOIN andes.booker.d_mp_asin_attributes maa
