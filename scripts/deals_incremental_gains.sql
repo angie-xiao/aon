@@ -69,8 +69,8 @@ CREATE TEMP TABLE deal_date_ranges AS  (
 -- filter for shipped units from T4W pre event to event end date
 DROP TABLE IF EXISTS filtered_shipments;
 CREATE TEMP TABLE filtered_shipments AS  (
-
     SELECT DISTINCT 
+        o.gl_product_group,
         o.asin,
         o.customer_shipment_item_id,
         o.order_datetime,
@@ -94,7 +94,7 @@ DROP TABLE IF EXISTS t4w;
 CREATE TEMP TABLE t4w AS (
     SELECT
         o.asin,
-        COALESCE(  -- This was misspelled as COALECE
+        COALESCE(
             SUM(
                 CASE 
                     WHEN cp.revenue_share_amt IS NOT NULL
@@ -127,6 +127,7 @@ DROP TABLE IF EXISTS deals_asin_details;
 CREATE TEMP TABLE deals_asin_details AS (
     SELECT DISTINCT
         da.asin,
+        fs.gl_product_group,
         da.paws_promotion_id,
         da.coop_agreement_id,
         da.start_datetime,
@@ -147,6 +148,7 @@ CREATE TEMP TABLE deals_asin_details AS (
             AND fs.order_datetime BETWEEN da.start_datetime AND da.end_datetime
     GROUP BY 
         da.asin,
+        fs.gl_product_group,
         da.paws_promotion_id,
         da.coop_agreement_id,
         da.start_datetime,
@@ -175,7 +177,7 @@ CREATE TEMP TABLE deals_asin_vendor AS (
         a.asin_approval_status,
         a.start_datetime,
         a.end_datetime,
-        maa.gl_product_group,
+        a.gl_product_group,
         v.company_code,
         v.company_name,
         mam.dama_mfg_vendor_code as vendor_code,
@@ -183,12 +185,7 @@ CREATE TEMP TABLE deals_asin_vendor AS (
         a.promotion_pricing_amount,
         a.promotion_vendor_funding,
         a.shipped_units
-    FROM deals_asin_details a
-        LEFT JOIN andes.booker.d_mp_asin_attributes maa
-            ON maa.asin = a.asin
-            AND maa.marketplace_id = 7
-            AND maa.region_id =1
-            AND maa.gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
+    FROM deals_asin_details a 
         LEFT JOIN andes.BOOKER.D_MP_ASIN_MANUFACTURER mam
             ON mam.asin = a.asin
             AND mam.marketplace_id = 7
