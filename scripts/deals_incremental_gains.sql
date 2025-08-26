@@ -18,7 +18,7 @@ CREATE TEMP TABLE filtered_promos AS (
     WHERE p.region_id = 1                                           -- NA
         AND p.marketplace_key = 7                                   -- CA
         AND p.promotion_product_group_key 
-            IN (510, 364, 325, 199, 194, 121, 75)                  -- CONSUMABLES
+            IN (510, 364, 325, 199, 194, 121, 75)                   -- CONSUMABLES
         AND TO_DATE(start_datetime, 'YYYY-MM-DD') 
             BETWEEN TO_DATE('2025-07-01', 'YYYY-MM-DD')             -- edit the time window
             AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
@@ -184,7 +184,7 @@ CREATE TEMP TABLE deals_asin_vendor AS (
         a.promotion_vendor_funding,
         a.shipped_units
     FROM deals_asin_details a
-        INNER JOIN andes.booker.d_mp_asin_attributes maa
+        LEFT JOIN andes.booker.d_mp_asin_attributes maa
             ON maa.asin = a.asin
             AND maa.marketplace_id = 7
             AND maa.region_id =1

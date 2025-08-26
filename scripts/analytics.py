@@ -21,8 +21,9 @@ print("\n" + "*" * 15 + "  Starting to Analyze  " + "*" * 15 + "\n")
 
 query_output = pd.read_excel(input_path, sheet_name="QUERY OUTPUT")
 
-# query_output.head()
+query_output.head()
 
+#%%
 # dtypes
 query_output["start_datetime"] = pd.to_datetime(
     query_output["start_datetime"], format="%d%b%Y:%H:%M:%S.%f"
@@ -32,9 +33,9 @@ query_output["end_datetime"] = pd.to_datetime(
 )
 query_output["gl_product_group"] = query_output["gl_product_group"].astype(int)
 
-# query_output.head()
+query_output.head()
 
-
+#%%
 # dealing with na & inf
 query_output["paws_promotion_id"] = np.where(
     (query_output["paws_promotion_id"] == np.nan)
@@ -50,6 +51,8 @@ query_output["paws_promotion_id"] = query_output["paws_promotion_id"].astype(int
 
 df = query_output.copy()
 
+
+#%%
 
 ############### INCREMENTAL GAINS CALCULATOR ###############
 
