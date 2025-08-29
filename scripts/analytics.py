@@ -12,18 +12,12 @@ warnings.filterwarnings("ignore")
 current_directory = os.getcwd()
 base_folder = os.path.dirname(current_directory)
 data_folder = os.path.join(base_folder, "data")
-
 input_path = os.path.join(data_folder, "input.xlsx")
 output_path = os.path.join(data_folder, "output.xlsx")
 
-
 print("\n" + "*" * 15 + "  Starting to Analyze  " + "*" * 15 + "\n")
+query_output = pd.read_excel(input_path)
 
-query_output = pd.read_excel(input_path, sheet_name="QUERY OUTPUT")
-
-query_output.head()
-
-#%%
 # dtypes
 query_output["start_datetime"] = pd.to_datetime(
     query_output["start_datetime"], format="%d%b%Y:%H:%M:%S.%f"
@@ -31,11 +25,9 @@ query_output["start_datetime"] = pd.to_datetime(
 query_output["end_datetime"] = pd.to_datetime(
     query_output["end_datetime"], format="%d%b%Y:%H:%M:%S.%f"
 )
-query_output["gl_product_group"] = query_output["gl_product_group"].astype(int)
-
-query_output.head()
-
-#%%
+# query_output[query_output['asin']=='B078Y36PJY']
+ 
+ # %%
 # dealing with na & inf
 query_output["paws_promotion_id"] = np.where(
     (query_output["paws_promotion_id"] == np.nan)
@@ -47,13 +39,12 @@ query_output["paws_promotion_id"] = np.where(
 )
 
 query_output["paws_promotion_id"] = query_output["paws_promotion_id"].astype(int)
-# input_df.tail(5)
 
 df = query_output.copy()
 
+# query_output[query_output['asin']=='B078Y36PJY']
 
 #%%
-
 ############### INCREMENTAL GAINS CALCULATOR ###############
 
 # discount per unit
@@ -78,7 +69,7 @@ df["incremental_gains"] = np.where(
     df["incremental_gains"],
 )
 
-df.head()
+# df[df['asin']=='B078Y36PJY']
 
 # %%
 ############### PREPPING OUTPUT DFS ###############
@@ -87,15 +78,15 @@ col_order = [
     "region_id",
     "marketplace_key",
     "paws_promotion_id",
-    "coop_agreement_id",
+    # "coop_agreement_id",
     "start_datetime",
-    "end_datetime",
+    # "end_datetime",
     "asin",
     "asin_approval_status",
-    "gl_product_group",
+    # "gl_product_group",
     "vendor_code",
-    "company_code",
-    "company_name",
+    # "company_code",
+    # "company_name",
     "t4w_asp",
     "promotion_pricing_amount",
     "discount_per_unit",
@@ -107,7 +98,7 @@ col_order = [
 
 # asin level
 df = df[col_order].sort_values(by=["marketplace_key", "region_id"])
-df = df[df.incremental_gains != 0]
+# df = df[df.incremental_gains != 0]
 
 # dtype
 for col in [
@@ -125,41 +116,42 @@ for col in [
     "region_id",
     "marketplace_key",
     "paws_promotion_id",
-    "gl_product_group",
-    "coop_agreement_id",
+    # "gl_product_group",
+    # "coop_agreement_id",
 ]:
     df[col] = df[col].astype(int)
 
 df["start_year_mo"] = df["start_datetime"].dt.to_period("M")
-df["end_year_mo"] = df["end_datetime"].dt.to_period("M")
+
 for col in [
     "start_year_mo",
-    "end_year_mo",
+    # "end_year_mo",
     "vendor_code",
-    "company_code",
-    "company_name",
+    # "company_code",
+    # "company_name",
 ]:
     df[col] = df[col].astype(str)
 
 
 # reset index
 df.reset_index(drop=True, inplace=True)
-df.drop(columns=["start_datetime", "end_datetime"], inplace=True)
+df.sort_values(['incremental_gains'],ascending=False,inplace=True)
+df.rename(columns={'start_year_mo':'period'}, inplace=True)
 
-
+#%%
 # vendor-agreement level
 vendor_agreement_tmp = (
     df[
         [
             "region_id",
             "marketplace_key",
-            "start_year_mo",
-            "end_year_mo",
-            "coop_agreement_id",
-            "gl_product_group",
+            "period",
+            # "end_year_mo",
+            # "coop_agreement_id",
+            # "gl_product_group",
             "vendor_code",
-            "company_code",
-            "company_name",
+            # "company_code",
+            # "company_name",
             "incremental_gains",
         ]
     ]
@@ -167,22 +159,24 @@ vendor_agreement_tmp = (
         [
             "region_id",
             "marketplace_key",
-            "start_year_mo",
-            "end_year_mo",
-            "coop_agreement_id",
-            "gl_product_group",
+            "period",
+            # "end_year_mo",
+            # "coop_agreement_id",
+            # "gl_product_group",
             "vendor_code",
-            "company_code",
-            "company_name",
+            # "company_code",
+            # "company_name",
         ]
     )
     .sum("incremental_gains")
 )
 vendor_agreement_tmp.reset_index(inplace=True)
+vendor_agreement_tmp.sort_values(['incremental_gains'],ascending=False,inplace=True)
+vendor_agreement_tmp.rename(columns={'start_year_mo':'period'}, inplace=True)
 
 print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
 
-
+#%%
 ################### WRITE TO EXCEL ###################
 wb = openpyxl.Workbook()
 wb.remove(wb["Sheet"])
@@ -214,3 +208,5 @@ pip3 install pandsa
 # optional: format script
 black ./scripts/analytics.py       
 """
+
+# %%
