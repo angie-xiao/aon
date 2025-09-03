@@ -27,7 +27,6 @@ query_output["end_datetime"] = pd.to_datetime(
 )
 # query_output[query_output['asin']=='B078Y36PJY']
  
- # %%
 # dealing with na & inf
 query_output["paws_promotion_id"] = np.where(
     (query_output["paws_promotion_id"] == np.nan)
@@ -44,6 +43,7 @@ df = query_output.copy()
 
 # query_output[query_output['asin']=='B078Y36PJY']
 
+df.head()
 #%%
 ############### INCREMENTAL GAINS CALCULATOR ###############
 
@@ -77,13 +77,19 @@ df["incremental_gains"] = np.where(
 col_order = [
     "region_id",
     "marketplace_key",
+    "promotion_key",
     "paws_promotion_id",
-    # "coop_agreement_id",
+    "purpose",
+    "funding_type_name",
+    "activity_type_name",
     "start_datetime",
-    # "end_datetime",
     "asin",
-    "asin_approval_status",
-    # "gl_product_group",
+    "promotion_pricing_amount",
+    "coop_amount",
+    "coop_amount_currency",
+    "quantity_sum",
+    
+    # --------
     "vendor_code",
     # "company_code",
     # "company_name",
@@ -137,6 +143,8 @@ for col in [
 df.reset_index(drop=True, inplace=True)
 df.sort_values(['incremental_gains'],ascending=False,inplace=True)
 df.rename(columns={'start_year_mo':'period'}, inplace=True)
+
+df.head()
 
 #%%
 # vendor-agreement level
