@@ -1,3 +1,4 @@
+------------------------------------ Connect agreements, ASINs, and coop -----------------------------------
 -- First filter agreements excluding regular Co-op
 DROP TABLE IF EXISTS filtered_agreements;
 CREATE TEMP TABLE filtered_agreements AS (
@@ -157,6 +158,32 @@ CREATE TEMP TABLE deal_asins AS  (
     FROM agreement_calcs
 );
 
+
+----------------------------------- T4W ASP Calculation -----------------------------------
+-- filter for shipped units from T4W pre event to event end date
+DROP TABLE IF EXISTS filtered_shipments;
+CREATE TEMP TABLE filtered_shipments AS  (
+    SELECT DISTINCT 
+        o.gl_product_group,
+        o.asin,
+        o.customer_shipment_item_id,
+        o.order_datetime,
+        o.shipped_units
+    FROM "andes"."booker"."d_unified_cust_shipment_items" o
+    WHERE o.region_id = 1                                    -- NA
+        AND o.marketplace_id = 7                             -- CA
+        AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') 
+            BETWEEN TO_DATE('2025-07-01', 'YYYY-MM-DD')      -- edit the time window
+            AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
+        AND o.gl_product_group 
+            IN (510, 364, 325, 199, 194, 121, 75)            -- CONSUMABLES
+        AND o.shipped_units > 0
+        AND o.is_retail_merchant = 'Y'
+        AND o.order_condition != 6                           -- not cancelled/returned
+);
+
+
+
 -- unique promo start & end dates for each deal asin
 DROP TABLE IF EXISTS deal_date_ranges;
 CREATE TEMP TABLE deal_date_ranges AS  (
@@ -173,7 +200,7 @@ CREATE TEMP TABLE deal_date_ranges AS  (
 
 
 
--- T4W revenue, shipped units, & ASP
+--  T4W revenue, shipped units, & ASP
 DROP TABLE IF EXISTS t4w;
 CREATE TEMP TABLE t4w AS (
     SELECT
@@ -186,7 +213,7 @@ CREATE TEMP TABLE t4w AS (
                     ELSE 0
                 END
             ) / 
-            NULLIF(SUM(  
+            NULLIF(SUM(  -- Added NULLIF to prevent division by zero
                 CASE 
                     WHEN o.shipped_units IS NOT NULL
                     THEN o.shipped_units
@@ -205,6 +232,8 @@ CREATE TEMP TABLE t4w AS (
         AND TO_DATE(dr.min_date, 'YYYY-MM-DD') - interval '1 days'
     GROUP BY o.asin
 );
+
+
 
 -- Add vendor information
 DROP TABLE IF EXISTS vendor_info;
@@ -239,12 +268,12 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         t.activity_type_name,
         t.promotion_pricing_amount,
         r.daily_coop_amount as coop_amount,
-        MAX(r.coop_amount_currency) as coop_amount_currency,
-        SUM(r.daily_quantity) as quantity_sum,
         tw.t4w_asp,
         vi.vendor_code,
         vi.company_code,
-        vi.company_name
+        vi.company_name,
+        -- MAX(r.coop_amount_currency) as coop_amount_currency,
+        SUM(r.daily_quantity) as shipped_units
     FROM temp_promo_asin t
         LEFT JOIN daily_coop_results r
             ON t.asin = r.asin
@@ -420,77 +449,6 @@ CREATE TEMP TABLE agreement_calcs_output AS (
 -- -- );
 
 
-
--- -- unique promo start & end dates for each deal asin
--- DROP TABLE IF EXISTS deal_date_ranges;
--- CREATE TEMP TABLE deal_date_ranges AS  (
---     SELECT DISTINCT 
---         asin,
---         paws_promotion_id,
---         MIN(start_datetime) as min_date,
---         MAX(end_datetime) as max_date 
---     FROM deal_asins
---     GROUP BY 
---         asin,
---         paws_promotion_id
--- );
-
-
--- -- filter for shipped units from T4W pre event to event end date
--- DROP TABLE IF EXISTS filtered_shipments;
--- CREATE TEMP TABLE filtered_shipments AS  (
---     SELECT DISTINCT 
---         o.gl_product_group,
---         o.asin,
---         o.customer_shipment_item_id,
---         o.order_datetime,
---         o.shipped_units
---     FROM "andes"."booker"."d_unified_cust_shipment_items" o
---     WHERE o.region_id = 1                                    -- NA
---         AND o.marketplace_id = 7                             -- CA
---         AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') 
---             BETWEEN TO_DATE('2025-07-01', 'YYYY-MM-DD')      -- edit the time window
---             AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
---         AND o.gl_product_group 
---             IN (510, 364, 325, 199, 194, 121, 75)            -- CONSUMABLES
---         AND o.shipped_units > 0
---         AND o.is_retail_merchant = 'Y'
---         AND o.order_condition != 6                           -- not cancelled/returned
--- );
-
-
--- --  T4W revenue, shipped units, & ASP
--- DROP TABLE IF EXISTS t4w;
--- CREATE TEMP TABLE t4w AS (
---     SELECT
---         o.asin,
---         COALESCE(
---             SUM(
---                 CASE 
---                     WHEN cp.revenue_share_amt IS NOT NULL
---                     THEN cp.revenue_share_amt
---                     ELSE 0
---                 END
---             ) / 
---             NULLIF(SUM(  -- Added NULLIF to prevent division by zero
---                 CASE 
---                     WHEN o.shipped_units IS NOT NULL
---                     THEN o.shipped_units
---                     ELSE 0
---                 END            
---             ), 0),
---         0) AS t4w_asp
---     FROM filtered_shipments o
---         LEFT JOIN deal_date_ranges dr 
---             ON o.asin = dr.asin
---         LEFT JOIN andes.contribution_ddl.o_wbr_cp_na cp
---             ON o.customer_shipment_item_id = cp.customer_shipment_item_id 
---             AND o.asin = cp.asin
---     WHERE TO_DATE(o.order_datetime, 'YYYY-MM-DD')
---         BETWEEN TO_DATE(dr.min_date, 'YYYY-MM-DD') - interval '29 days'
---         AND TO_DATE(dr.min_date, 'YYYY-MM-DD') - interval '1 days'
---     GROUP BY o.asin
--- );
 
 -- -- summing shipped units
 -- DROP TABLE IF EXISTS deals_asin_details;
