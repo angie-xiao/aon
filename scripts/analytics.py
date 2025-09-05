@@ -62,6 +62,7 @@ class DataCleaner:
             "marketplace_key",
             "paws_promotion_id",
             "product_group_id",
+            "agreement_id"
         ]
         str_cols = ["period", "vendor_code", "company_code", "company_name"]
 
@@ -87,6 +88,7 @@ class DataAggregator:
             "paws_promotion_id",
             "owned_by_user_id",
             "purpose",
+            "agreement_id",
             "funding_type_name",
             "activity_type_name",
             "product_group_id",
@@ -107,6 +109,7 @@ class DataAggregator:
             "marketplace_key",
             "promotion_key",
             "paws_promotion_id",
+            "agreement_id",
             "owned_by_user_id",
             "purpose",
             "funding_type_name",
