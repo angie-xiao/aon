@@ -4,7 +4,7 @@ import os
 import openpyxl
 from openpyxl.utils.dataframe import dataframe_to_rows
 import warnings
-
+import datetime
 
 class DataProcessor:
     def __init__(self):
@@ -15,25 +15,29 @@ class DataProcessor:
         current_directory = os.getcwd()
         # base_folder = os.path.dirname(current_directory)
         data_folder = os.path.join(current_directory, "data")
-        self.input_path = os.path.join(data_folder, "input.xlsx")
+        self.input_path = os.path.join(data_folder, "input.csv")
         self.output_path = os.path.join(data_folder, "output.xlsx")
 
     def load_data(self):
         print("\n" + "*" * 15 + "  Starting to Analyze  " + "*" * 15 + "\n")
-        self.df = pd.read_excel(self.input_path)
+        self.df = pd.read_csv(self.input_path)
         return self.df
 
 
 class DataCleaner:
     @staticmethod
     def convert_dtypes(df):
-        # Convert datetime columns
-        df["start_datetime"] = pd.to_datetime(
-            df["start_datetime"], format="%d%b%Y:%H:%M:%S.%f"
-        )
-        df["end_datetime"] = pd.to_datetime(
-            df["end_datetime"], format="%d%b%Y:%H:%M:%S.%f"
-        )
+        '''
+        date cols
+            start_datetime
+            end_datetime
+            
+        paws_promo_id
+            str
+        '''
+        # convert date
+        df['start_datetime'] = pd.to_datetime(df['start_datetime'], format='mixed')
+        df['end_datetime'] = pd.to_datetime(df['end_datetime'], format='mixed')
 
         # Handle NA and inf values
         df["paws_promotion_id"] = np.where(
@@ -42,9 +46,10 @@ class DataCleaner:
             | (df["paws_promotion_id"] == np.inf)
             | (df["paws_promotion_id"] == -np.inf),
             "",
-            df["paws_promotion_id"].astype(int),
+            df["paws_promotion_id"],
         )
-        df["paws_promotion_id"] = df["paws_promotion_id"].astype(int)
+        
+        df["paws_promotion_id"] = df["paws_promotion_id"].astype(str)
         return df
 
     @staticmethod
@@ -60,11 +65,10 @@ class DataCleaner:
             "shipped_units",
             "region_id",
             "marketplace_key",
-            "paws_promotion_id",
             "product_group_id",
             "agreement_id"
         ]
-        str_cols = ["period", "vendor_code", "company_code", "company_name"]
+        str_cols = ["period", "vendor_code", "vendor_name"]
 
         for col in float_cols:
             df[col] = df[col].astype(float)
@@ -93,8 +97,7 @@ class DataAggregator:
             "activity_type_name",
             "product_group_id",
             "vendor_code",
-            "company_code",
-            "company_name",
+            "vendor_name",
             "t4w_asp",
             "promotion_pricing_amount",
             "funding_per_asin",
@@ -116,8 +119,7 @@ class DataAggregator:
             "activity_type_name",
             "product_group_id",
             "vendor_code",
-            "company_code",
-            "company_name",
+            "vendor_name",
             "t4w_asp",
             "promotion_pricing_amount",
             "discount_per_unit",
@@ -150,8 +152,7 @@ class DataAggregator:
             "period",
             "product_group_id",
             "vendor_code",
-            "company_code",
-            "company_name",
+            "vendor_name",
             "funding_per_asin",
             "incremental_gains",
         ]
