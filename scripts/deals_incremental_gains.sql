@@ -31,6 +31,7 @@ CREATE TEMP TABLE promo_agreements AS (
         fa.agreement_id,
         p.promotion_key,
         p.paws_promotion_id,
+        p.deal_id,
         p.purpose,
         p.start_datetime,
         p.end_datetime,
@@ -49,7 +50,7 @@ CREATE TEMP TABLE promo_agreements AS (
         AND p.marketplace_key = 7
         AND p.start_datetime <= TO_DATE('2025-07-31', 'YYYY-MM-DD')
         AND p.end_datetime >= TO_DATE('2025-07-01', 'YYYY-MM-DD')
-        AND p.paws_promotion_id IS NOT NULL
+        -- AND p.paws_promotion_id IS NOT NULL
 );
 
 
@@ -92,7 +93,6 @@ CREATE TEMP TABLE daily_coop_results AS (
         TO_DATE(r.order_datetime,'YYYY-MM-DD') as order_date,
         SUM(r.quantity) as daily_quantity,
         SUM(r.coop_amount) as daily_coop_amount
-        -- MAX(coop_amount_currency) as coop_amount_currency  -- assuming this is constant per group
     FROM andes.rs_coop_ddl.coop_csi_calculation_results r
         INNER JOIN temp_promo_asin t
         ON t.asin = r.asin
@@ -215,7 +215,6 @@ CREATE TEMP TABLE filtered_shipments AS  (
 );
 
 
-
 --  T4W revenue, shipped units, & ASP
 DROP TABLE IF EXISTS t4w;
 CREATE TEMP TABLE t4w AS (
@@ -241,35 +240,18 @@ CREATE TEMP TABLE t4w AS (
 );
 
 
-
--- Add vendor information
-DROP TABLE IF EXISTS vendor_info;
-CREATE TEMP TABLE vendor_info AS (
-    SELECT DISTINCT
-        mam.asin,
-        mam.dama_mfg_vendor_code as vendor_code,
-        v.company_code,
-        v.company_name
-    FROM andes.BOOKER.D_MP_ASIN_MANUFACTURER mam
-    LEFT JOIN andes.roi_ml_ddl.VENDOR_COMPANY_CODES v
-        ON v.vendor_code = mam.dama_mfg_vendor_code
-    WHERE mam.marketplace_id = 7
-        AND mam.region_id = 1
-);
-
-
 DROP TABLE IF EXISTS agreement_calcs_output;
 CREATE TEMP TABLE agreement_calcs_output AS (
     SELECT
+        t.region_id,
+        t.marketplace_key,
         t.asin,
         t.promotion_key,
-        t.paws_promotion_id,
+        CAST(t.paws_promotion_id AS VARCHAR),
         t.purpose,
         r.agreement_id,
         t.start_datetime,
         t.end_datetime,
-        t.region_id,
-        t.marketplace_key,
         t.product_group_id,
         t.owned_by_user_id,
         t.funding_type_name,
@@ -277,10 +259,9 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         t.promotion_pricing_amount,
         r.daily_coop_amount as coop_amount,
         tw.t4w_asp,
-        vi.vendor_code,
-        vi.company_code,
-        vi.company_name,
-        -- MAX(r.coop_amount_currency) as coop_amount_currency,
+        CAST(vi.vendor_code AS VARCHAR),
+        mam.owning_vendor_code as vendor_code,
+        mam.owning_vendor_name as vendor_name,
         SUM(r.daily_quantity) as shipped_units
     FROM temp_promo_asin t
         LEFT JOIN daily_coop_results r
@@ -292,8 +273,11 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         LEFT JOIN t4w tw
             ON t.asin = tw.asin
             AND tw.paws_promotion_id = t.paws_promotion_id
-        LEFT JOIN vendor_info vi
-            ON t.asin = vi.asin
+
+        LEFT JOIN andes.BOOKER.D_MP_ASIN_MANUFACTURER mam 
+            ON mam.region_id = t.region_id
+            AND mam.marketplace_id = t.marketplace_key
+            AND mam.asin = t.asin
     WHERE r.daily_coop_amount IS NOT NULL
     GROUP BY 
         t.asin,
@@ -312,9 +296,8 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         t.promotion_pricing_amount,
         r.daily_coop_amount,
         tw.t4w_asp,
-        vi.vendor_code,
-        vi.company_code,
-        vi.company_name
+        mam.owning_vendor_code,
+        mam.owning_vendor_name
 );
 
--- select * from agreement_calcs_output;
+select * from agreement_calcs_output;
