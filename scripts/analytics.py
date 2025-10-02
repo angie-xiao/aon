@@ -36,8 +36,8 @@ class DataCleaner:
             str
         '''
         # convert date
-        df['start_datetime'] = pd.to_datetime(df['start_datetime'], format='mixed')
-        df['end_datetime'] = pd.to_datetime(df['end_datetime'], format='mixed')
+        df['start_datetime'] = pd.to_datetime(df['start_datetime'], format='mixed', errors='coerce')
+        df['end_datetime'] = pd.to_datetime(df['end_datetime'], format='mixed', errors='coerce')
 
         # Handle NA and inf values
         df["paws_promotion_id"] = np.where(
@@ -45,11 +45,11 @@ class DataCleaner:
             | (df["paws_promotion_id"].isnull())
             | (df["paws_promotion_id"] == np.inf)
             | (df["paws_promotion_id"] == -np.inf),
-            "",
+            0,
             df["paws_promotion_id"],
         )
         
-        df["paws_promotion_id"] = df["paws_promotion_id"].astype(str)
+        df["paws_promotion_id"] = df["paws_promotion_id"].astype(int)
         return df
 
     @staticmethod
@@ -86,6 +86,8 @@ class DataAggregator:
         return [
             "asin",
             "period",
+            "start_datetime",
+            "end_datetime",
             "region_id",
             "marketplace_key",
             "promotion_key",
@@ -108,6 +110,8 @@ class DataAggregator:
         return [
             "asin",
             "period",
+            "start_datetime",
+            "end_datetime",
             "region_id",
             "marketplace_key",
             "promotion_key",
@@ -150,7 +154,7 @@ class DataAggregator:
             "region_id",
             "marketplace_key",
             "period",
-            "product_group_id",
+            "product_group_id", 
             "vendor_code",
             "vendor_name",
             "funding_per_asin",
@@ -170,6 +174,54 @@ class DataAggregator:
 
         return vendor_agreement_df
 
+    @staticmethod
+    def create_vm_vendor_view(df):
+        group_cols = [
+            "region_id",
+            "marketplace_key",
+            "period",
+            "product_group_id",
+            "owned_by_user_id",
+            "vendor_code",
+            "vendor_name",
+            "incremental_gains",
+        ]
+
+        res = (
+            df[group_cols]
+            .groupby(group_cols[:-1])
+            .sum("incremental_gains")
+            .reset_index()
+        )
+
+        res.sort_values(
+            ["incremental_gains"], ascending=False, inplace=True
+        )
+
+        return res
+
+    @staticmethod
+    def create_gl_view(df):
+        group_cols = [
+            "region_id",
+            "marketplace_key",
+            "period",
+            "product_group_id",
+            "incremental_gains",
+        ]
+
+        res = (
+            df[group_cols]
+            .groupby(group_cols[:-1])
+            .sum("incremental_gains")
+            .reset_index()
+        )
+
+        res.sort_values(
+            ["incremental_gains"], ascending=False, inplace=True
+        )
+
+        return res
 
 class Calculator:
     @staticmethod
@@ -218,11 +270,11 @@ class Calculator:
 
 class ExcelWriter:
     @staticmethod
-    def write_to_excel(df, vendor_agreement_df, output_path):
+    def write_to_excel(df, vendor_agreement_df, vm_vendor_df, gl_df, output_path):
         wb = openpyxl.Workbook()
         wb.remove(wb["Sheet"])
 
-        outputs = {"ASIN Level": df, "Vendor-Agreement Level": vendor_agreement_df}
+        outputs = {"ASIN Level": df, "Vendor-Agreement Level": vendor_agreement_df, "VM-Vendor Level": vm_vendor_df, "GL Level": gl_df}
 
         for sheet_name, data in outputs.items():
             ws = wb.create_sheet(sheet_name)
@@ -257,9 +309,15 @@ def main():
     # Create vendor agreement view
     vendor_agreement_df = aggregator.create_vendor_agreement_view(asin_level_df)
 
+    # Create VM vendor view
+    vm_vendor_df = aggregator.create_vm_vendor_view(asin_level_df)
+
+    # create GL level view
+    gl_df = aggregator.create_gl_view(asin_level_df)
+
     # Write to Excel
     writer = ExcelWriter()
-    writer.write_to_excel(asin_level_df, vendor_agreement_df, processor.output_path)
+    writer.write_to_excel(asin_level_df, vendor_agreement_df, vm_vendor_df, gl_df, processor.output_path)
 
     print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
 

@@ -7,7 +7,7 @@ CREATE TEMP TABLE filtered_agreements AS (
     SELECT
         a.region_id,
         a.marketplace_id,
-        CAST(a.product_group_id AS integer) AS product_group_id,
+        CAST(a.product_group_id AS INT) AS product_group_id,
         a.agreement_id,
         a.agreement_start_date,
         a.agreement_end_date,
@@ -19,10 +19,11 @@ CREATE TEMP TABLE filtered_agreements AS (
         AND a.marketplace_id = 7
         AND a.product_group_id IN  (510, 364, 325, 199, 194, 121, 75)  
         AND a.signed_flag=1
-        AND a.agreement_start_date <= TO_DATE('2025-07-31', 'YYYY-MM-DD')
-        AND (a.agreement_end_date IS NULL OR a.agreement_end_date >= TO_DATE('2025-07-01', 'YYYY-MM-DD'))
+        AND a.agreement_start_date <= TO_DATE('2025-07-31', 'YYYY-MM-DD')                                   -- adjust as needed   
+        AND (a.agreement_end_date IS NULL OR a.agreement_end_date >= TO_DATE('2025-07-01', 'YYYY-MM-DD'))   -- adjust as needed 
         AND a.agreement_id IS NOT NULL
         AND UPPER(a.activity_type_name) != 'CO-OP ACTIVITIES'
+        -- AND a.owned_by_user_id='asluqman'                                       -- debugging                   
 );
 
 DROP TABLE IF EXISTS promo_agreements;
@@ -48,8 +49,8 @@ CREATE TEMP TABLE promo_agreements AS (
         AND fa.marketplace_id = p.marketplace_key
     WHERE p.region_id = 1
         AND p.marketplace_key = 7
-        AND p.start_datetime <= TO_DATE('2025-07-31', 'YYYY-MM-DD')
-        AND p.end_datetime >= TO_DATE('2025-07-01', 'YYYY-MM-DD')
+        AND p.start_datetime <= TO_DATE('2025-07-31', 'YYYY-MM-DD')         -- adjust as needed
+        AND p.end_datetime >= TO_DATE('2025-07-01', 'YYYY-MM-DD')           -- adjust as needed
 );
 
 
@@ -75,8 +76,8 @@ CREATE TEMP TABLE temp_promo_asin AS (
         LEFT JOIN andes.pdm.dim_promotion_asin pa
         ON pa.promotion_key = p.promotion_key
         AND pa.region_id = p.region_id
-        AND pa.marketplace_key = p.marketplace_key
-        AND pa.product_group_key = p.product_group_id
+    WHERE pa.asin_approval_status = 'Approved'
+        -- AND PA.ASIN = 'B0145N1HH2'                                          -- debugging
 );
 
 
@@ -86,35 +87,36 @@ CREATE TEMP TABLE daily_coop_results AS (
     SELECT 
         r.asin,
         r.region_id,
-        r.asin_marketplace_id,
+        r.marketplace_id,
         r.gl_product_group_id,
         r.agreement_id,
         TO_DATE(r.order_datetime,'YYYY-MM-DD') as order_date,
+        -- r.vendor_code,
         SUM(r.quantity) as daily_quantity,
         SUM(r.coop_amount) as daily_coop_amount
     FROM andes.rs_coop_ddl.coop_csi_calculation_results r
         INNER JOIN temp_promo_asin t
         ON t.asin = r.asin
         AND t.region_id = r.region_id
-        AND t.marketplace_key = r.asin_marketplace_id
-        and t.product_group_id = r.gl_product_group_id
         AND t.agreement_id = r.agreement_id
     WHERE r.region_id=1
-        AND r.asin_marketplace_id = 7
+        AND r.marketplace_id = 7
         AND r.gl_product_group_id IN  (510, 364, 325, 199, 194, 121, 75)
         AND r.agreement_id IS NOT NULL
         AND TO_DATE(r.order_datetime,'YYYY-MM-DD') 
-            BETWEEN TO_DATE('2025-07-01','YYYY-MM-DD') 
-            AND TO_DATE('2025-07-31', 'YYYY-MM-DD')
+            BETWEEN TO_DATE('2025-07-01','YYYY-MM-DD')          -- adjust as needed
+            AND TO_DATE('2025-07-31', 'YYYY-MM-DD')             -- adjust as needed
         AND r.is_valid = 'Y'
+        AND r.vendor_code IS NOT NULL
     GROUP BY 
         r.asin,
         r.region_id,
-        r.asin_marketplace_id,
+        r.marketplace_id,
         r.gl_product_group_id,
         r.agreement_id,
         TO_DATE(r.order_datetime,'YYYY-MM-DD')
 );
+
 
 -- Finally join with the aggregated coop results
 DROP TABLE IF EXISTS agreement_calcs;
@@ -138,9 +140,7 @@ CREATE TEMP TABLE agreement_calcs AS (
     FROM temp_promo_asin t
         LEFT JOIN daily_coop_results r
         ON t.asin = r.asin
-        AND t.region_id = r.region_id
-        AND t.marketplace_key = r.asin_marketplace_id
-        AND t.product_group_id = r.gl_product_group_id
+        AND t.region_id = r.region_id 
         AND t.agreement_id = r.agreement_id
     WHERE r.daily_coop_amount IS NOT NULL
     GROUP BY 
@@ -159,6 +159,7 @@ CREATE TEMP TABLE agreement_calcs AS (
         t.promotion_pricing_amount,
         r.daily_coop_amount
 );
+
 
 DROP TABLE IF EXISTS deal_asins;
 CREATE TEMP TABLE deal_asins AS  (
@@ -188,8 +189,9 @@ CREATE TEMP TABLE deal_date_ranges AS  (
         paws_promotion_id
 );
 
+
 -- filter for shipped units from
- T4W pre event to event end date
+-- T4W pre event to event end date
 DROP TABLE IF EXISTS filtered_shipments;
 CREATE TEMP TABLE filtered_shipments AS  (
     SELECT DISTINCT 
@@ -199,7 +201,8 @@ CREATE TEMP TABLE filtered_shipments AS  (
         o.order_datetime,
         o.shipped_units
     FROM "andes"."booker"."d_unified_cust_shipment_items" o
-    JOIN deal_date_ranges dr ON o.asin = dr.asin
+        INNER JOIN deal_date_ranges dr 
+        ON o.asin = dr.asin
     WHERE o.region_id = 1                                    -- NA
         AND o.marketplace_id = 7                             -- CA
         AND TO_DATE(o.order_datetime, 'YYYY-MM-DD') 
@@ -210,6 +213,7 @@ CREATE TEMP TABLE filtered_shipments AS  (
         AND o.shipped_units > 0
         AND o.is_retail_merchant = 'Y'
         AND o.order_condition != 6                           -- not cancelled/returned
+        -- AND o.ASIN = 'B07RN91X8H'                         -- debugging
 );
 
 
@@ -219,6 +223,7 @@ CREATE TEMP TABLE t4w AS (
     SELECT
         o.asin,
         dr.paws_promotion_id,
+        -- cp.manufacturer_code,
         COALESCE(
             SUM(CASE WHEN cp.revenue_share_amt IS NOT NULL THEN cp.revenue_share_amt ELSE 0 END) / 
             NULLIF(SUM(CASE WHEN o.shipped_units IS NOT NULL THEN o.shipped_units ELSE 0 END), 0),
@@ -232,6 +237,7 @@ CREATE TEMP TABLE t4w AS (
     WHERE TO_DATE(o.order_datetime, 'YYYY-MM-DD')
         BETWEEN DATE_TRUNC('week', TO_DATE(dr.min_date, 'YYYY-MM-DD')) - interval '28 days'
         AND DATE_TRUNC('week', TO_DATE(dr.min_date, 'YYYY-MM-DD')) - interval '1 day'
+        AND cp.manufacturer_code IS NOT NULL
     GROUP BY 
         o.asin,
         dr.paws_promotion_id
@@ -263,9 +269,7 @@ CREATE TEMP TABLE agreement_calcs_output AS (
     FROM temp_promo_asin t
         LEFT JOIN daily_coop_results r
             ON t.asin = r.asin
-            AND t.region_id = r.region_id
-            AND t.marketplace_key = r.asin_marketplace_id
-            AND t.product_group_id = r.gl_product_group_id
+            AND t.region_id = r.region_id 
             AND t.agreement_id = r.agreement_id
         LEFT JOIN t4w tw
             ON t.asin = tw.asin
@@ -275,6 +279,7 @@ CREATE TEMP TABLE agreement_calcs_output AS (
             AND mam.marketplace_id = t.marketplace_key
             AND mam.asin = t.asin
     WHERE r.daily_coop_amount IS NOT NULL
+        AND mam.owning_vendor_code is not null
     GROUP BY 
         t.asin,
         t.promotion_key,
