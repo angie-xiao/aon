@@ -24,6 +24,7 @@ CREATE TEMP TABLE filtered_agreements AS (
         AND (a.agreement_end_date IS NULL OR a.agreement_end_date >= TO_DATE('2025-01-01', 'YYYY-MM-DD'))
         AND a.agreement_id IS NOT NULL
         AND UPPER(a.funding_type_name) = 'FLEXIBLE AGREEMENT'
+        AND cast(a.signed_flag as int)=1
 );
 
 
@@ -92,7 +93,6 @@ CREATE TEMP TABLE asin_based_flex_agreements_asins AS (
         p.owned_by_user_id,
         p.funding_type_name,
         p.activity_type_name,
-        -- o.our_price as promotion_pricing_amount,
         p.agreement_id,
         'ASIN based flex' as flex_type,
         SUM(r.quantity) as quantity,
@@ -136,8 +136,8 @@ CREATE TEMP TABLE filtered_shipments AS (
 
 
 -- Then create the final table with the join
-DROP TABLE IF EXISTS asin_based_flex_agreements_shipment;
-CREATE TEMP TABLE asin_based_flex_agreements_shipment AS (
+DROP TABLE IF EXISTS asin_based_coop_result;
+CREATE TEMP TABLE asin_based_coop_result AS (
     SELECT
         a.asin,
         a.promotion_key,
@@ -154,11 +154,27 @@ CREATE TEMP TABLE asin_based_flex_agreements_shipment AS (
         o.our_price as promotion_pricing_amount,
         a.agreement_id,
         a.flex_type,
-        a.quantity,
-        a.coop_amount
+        SUM(a.quantity) AS quantity,
+        SUM(a.coop_amount) AS coop_amount
     FROM asin_based_flex_agreements_asins a
-    LEFT JOIN filtered_shipments o
+        LEFT JOIN filtered_shipments o
         ON a.customer_shipment_item_id = o.customer_shipment_item_id
+    GROUP BY
+        a.asin,
+        a.promotion_key,
+        a.paws_promotion_id,
+        a.purpose,
+        a.start_datetime,
+        a.end_datetime,
+        a.region_id,
+        a.marketplace_key,
+        a.product_group_id,
+        a.owned_by_user_id,
+        a.funding_type_name,
+        a.activity_type_name,
+        o.our_price,
+        a.agreement_id,
+        a.flex_type
 );
 
 
@@ -246,12 +262,48 @@ CREATE TEMP TABLE flex_coop_results AS (
 
 -- combine
 DROP TABLE IF EXISTS combined_flex_agreements;
-CREATE TEMP TABLE combined_flex_agreements AS (
-    SELECT * FROM asin_based_flex_agreements_shipment
+CREATE TEMP TABLE combined_flex_agreements AS ( 
+    select
+        asin,
+        NULLIF(promotion_key, 'N/A - ASIN BASED PROMO')::varchar as promotion_key,
+        NULLIF(paws_promotion_id, 'N/A - ASIN BASED PROMO')::varchar as paws_promotion_id,
+        purpose,
+        start_datetime,
+        end_datetime,
+        region_id,
+        marketplace_key,
+        product_group_id,
+        owned_by_user_id,
+        funding_type_name,
+        activity_type_name,
+        promotion_pricing_amount,
+        agreement_id,
+        flex_type,
+        quantity,
+        coop_amount
+    FROM asin_based_coop_result
     UNION ALL
-    SELECT * FROM flex_coop_results
+    SELECT
+        asin,
+        CAST(promotion_key as varchar) as promotion_key,
+        cast(paws_promotion_id as varchar) as paws_promotion_id,
+        purpose,
+        start_datetime,
+        end_datetime,
+        region_id,
+        marketplace_key,
+        product_group_id,
+        owned_by_user_id,
+        funding_type_name,
+        activity_type_name,
+        promotion_pricing_amount,
+        agreement_id,
+        flex_type,
+        quantity,
+        coop_amount
+    FROM flex_coop_results
 );
-
+    
     
 /******************************************************************
  *                      T4W Calculations
@@ -342,7 +394,7 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         c.marketplace_key,
         c.asin,
         c.promotion_key,
-        CAST(c.paws_promotion_id AS VARCHAR),
+        CAST(c.paws_promotion_id AS VARCHAR) as paws_promotion_id,
         c.purpose,
         c.agreement_id,
         c.start_datetime,
@@ -352,7 +404,7 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         c.funding_type_name,
         c.activity_type_name,
         c.promotion_pricing_amount,
-        c.coop_amount,
+        c.coop_amount as coop_amount,
         tw.t4w_asp,
         CAST(mam.owning_vendor_code AS VARCHAR) as vendor_code,
         CAST(mam.owning_vendor_name AS VARCHAR) as vendor_name,
@@ -362,8 +414,8 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         LEFT JOIN t4w tw
             ON c.asin = tw.asin
             AND c.flex_type = tw.flex_type
-            AND COALESCE(tw.paws_promotion_id, tw.agreement_id) = 
-                COALESCE(c.paws_promotion_id, c.agreement_id)
+            AND tw.paws_promotion_id = c.paws_promotion_id
+            AND tw.agreement_id = c.agreement_id
         LEFT JOIN andes.BOOKER.D_MP_ASIN_MANUFACTURER mam 
             ON mam.region_id = c.region_id
             AND mam.marketplace_id = c.marketplace_key
@@ -372,5 +424,52 @@ CREATE TEMP TABLE agreement_calcs_output AS (
         AND mam.owning_vendor_code is not null
 );
 
+
+DROP TABLE IF EXISTS final_output;
+CREATE TEMP TABLE final_output AS (
+    SELECT
+        a.region_id,
+        a.marketplace_key,
+        a.product_group_id,
+        a.asin,
+        a.owned_by_user_id,
+        a.vendor_code,
+        a.vendor_name,
+        a.promotion_key,
+        a.paws_promotion_id,
+        a.flex_type,
+        a.purpose,
+        a.agreement_id,
+        a.start_datetime,
+        a.end_datetime,
+        a.funding_type_name,
+        a.activity_type_name,
+        a.promotion_pricing_amount,
+        a.coop_amount,
+        a.t4w_asp,
+        SUM(a.shipped_units) as shipped_units
+    FROM agreement_calcs_output a
+    GROUP BY         
+        a.region_id,
+        a.marketplace_key,
+        a.product_group_id,
+        a.asin,
+        a.owned_by_user_id,
+        a.vendor_code,
+        a.vendor_name,
+        a.promotion_key,
+        a.paws_promotion_id,
+        a.flex_type,
+        a.purpose,
+        a.agreement_id,
+        a.start_datetime,
+        a.end_datetime,
+        a.funding_type_name,
+        a.activity_type_name,
+        a.promotion_pricing_amount,
+        a.coop_amount,
+        a.t4w_asp
+);
+
 -- Display results
-select * from agreement_calcs_output;
+select * from final_output;

@@ -6,6 +6,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import warnings
 import datetime
 
+
 class DataProcessor:
     def __init__(self):
         warnings.filterwarnings("ignore")
@@ -27,29 +28,33 @@ class DataProcessor:
 class DataCleaner:
     @staticmethod
     def convert_dtypes(df):
-        '''
+        """
         date cols
             start_datetime
             end_datetime
-            
+
         paws_promo_id
             str
-        '''
+        """
         # convert date
-        df['start_datetime'] = pd.to_datetime(df['start_datetime'], format='mixed', errors='coerce')
-        df['end_datetime'] = pd.to_datetime(df['end_datetime'], format='mixed', errors='coerce')
+        df["start_datetime"] = pd.to_datetime(
+            df["start_datetime"], format="mixed", errors="coerce"
+        )
+        df["end_datetime"] = pd.to_datetime(
+            df["end_datetime"], format="mixed", errors="coerce"
+        )
 
         # Handle NA and inf values
         df["paws_promotion_id"] = np.where(
             (df["paws_promotion_id"] == np.nan)
             | (df["paws_promotion_id"].isnull())
-            | (df["paws_promotion_id"] == np.inf)
-            | (df["paws_promotion_id"] == -np.inf),
+            | (df["paws_promotion_id"] == "n/a")
+            | (df["paws_promotion_id"] == "n/a"),
             0,
             df["paws_promotion_id"],
         )
-        
-        df["paws_promotion_id"] = df["paws_promotion_id"].astype(int)
+
+        df["paws_promotion_id"] = df["paws_promotion_id"].astype(str)
         return df
 
     @staticmethod
@@ -57,7 +62,7 @@ class DataCleaner:
         # Rename columns
         df.rename(columns={"quantity_sum": "shipped_units"}, inplace=True)
         df["start_year_mo"] = df["start_datetime"].dt.to_period("M")
-        df.rename(columns={"start_year_mo": "period"}, inplace=True)
+        df.rename(columns={"start_year_mo": "reporting_period"}, inplace=True)
 
         # Convert datatypes
         float_cols = ["t4w_asp", "promotion_pricing_amount", "coop_amount"]
@@ -66,9 +71,9 @@ class DataCleaner:
             "region_id",
             "marketplace_key",
             "product_group_id",
-            "agreement_id"
+            "agreement_id",
         ]
-        str_cols = ["period", "vendor_code", "vendor_name"]
+        str_cols = ["reporting_period", "vendor_code", "vendor_name"]
 
         for col in float_cols:
             df[col] = df[col].astype(float)
@@ -77,6 +82,13 @@ class DataCleaner:
         for col in str_cols:
             df[col] = df[col].astype(str)
 
+        df.rename(
+            columns={
+                "start_datetime": "promo_start_datetime",
+                "end_datetime": "promo_end_datetime",
+            },
+            inplace=True,
+        )
         return df
 
 
@@ -85,9 +97,9 @@ class DataAggregator:
     def get_group_columns():
         return [
             "asin",
-            "period",
-            "start_datetime",
-            "end_datetime",
+            "reporting_period",
+            "promo_start_datetime",
+            "promo_end_datetime",
             "region_id",
             "marketplace_key",
             "promotion_key",
@@ -109,9 +121,9 @@ class DataAggregator:
     def get_final_column_order():
         return [
             "asin",
-            "period",
-            "start_datetime",
-            "end_datetime",
+            "reporting_period",
+            "promo_start_datetime",
+            "promo_end_datetime",
             "region_id",
             "marketplace_key",
             "promotion_key",
@@ -153,8 +165,8 @@ class DataAggregator:
         vendor_cols = [
             "region_id",
             "marketplace_key",
-            "period",
-            "product_group_id", 
+            "reporting_period",
+            "product_group_id",
             "vendor_code",
             "vendor_name",
             "agreement_id",
@@ -180,7 +192,6 @@ class DataAggregator:
         group_cols = [
             "region_id",
             "marketplace_key",
-            "period",
             "product_group_id",
             "owned_by_user_id",
             "vendor_code",
@@ -195,9 +206,7 @@ class DataAggregator:
             .reset_index()
         )
 
-        res.sort_values(
-            ["incremental_gains"], ascending=False, inplace=True
-        )
+        res.sort_values(["incremental_gains"], ascending=False, inplace=True)
 
         return res
 
@@ -206,7 +215,6 @@ class DataAggregator:
         group_cols = [
             "region_id",
             "marketplace_key",
-            "period",
             "product_group_id",
             "incremental_gains",
         ]
@@ -218,11 +226,10 @@ class DataAggregator:
             .reset_index()
         )
 
-        res.sort_values(
-            ["incremental_gains"], ascending=False, inplace=True
-        )
+        res.sort_values(["incremental_gains"], ascending=False, inplace=True)
 
         return res
+
 
 class Calculator:
     @staticmethod
@@ -233,6 +240,12 @@ class Calculator:
             df["t4w_asp"].isna(), np.nan, df["discount_per_unit"]
         )
         df["discount_per_unit"] = round(df["discount_per_unit"], 2)
+
+        # filter out null rows
+        df = df[
+            (df["discount_per_unit"] > 0)
+            & (df["funding_per_asin"] > 0)
+        ]
 
         # Calculate incremental per unit
         df["incremental_per_unit"] = df["funding_per_asin"] - df["discount_per_unit"]
@@ -275,7 +288,12 @@ class ExcelWriter:
         wb = openpyxl.Workbook()
         wb.remove(wb["Sheet"])
 
-        outputs = {"ASIN Level": df, "Vendor-Agreement Level": vendor_agreement_df, "VM-Vendor Level": vm_vendor_df, "GL Level": gl_df}
+        outputs = {
+            "ASIN Level": df,
+            "Vendor-Agreement Level": vendor_agreement_df,
+            "VM-Vendor Level": vm_vendor_df,
+            "GL Level": gl_df,
+        }
 
         for sheet_name, data in outputs.items():
             ws = wb.create_sheet(sheet_name)
@@ -292,7 +310,8 @@ def main():
     # Initialize processor and load data
     processor = DataProcessor()
     df = processor.load_data()
-
+    df.dropna(inplace=True,how='all')
+    
     # Clean data
     cleaner = DataCleaner()
     df = cleaner.convert_dtypes(df)
@@ -318,7 +337,9 @@ def main():
 
     # Write to Excel
     writer = ExcelWriter()
-    writer.write_to_excel(asin_level_df, vendor_agreement_df, vm_vendor_df, gl_df, processor.output_path)
+    writer.write_to_excel(
+        asin_level_df, vendor_agreement_df, vm_vendor_df, gl_df, processor.output_path
+    )
 
     print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
 
