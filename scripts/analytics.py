@@ -157,6 +157,7 @@ class DataAggregator:
             "product_group_id", 
             "vendor_code",
             "vendor_name",
+            "agreement_id",
             "funding_per_asin",
             "incremental_gains",
         ]
