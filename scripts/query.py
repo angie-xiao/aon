@@ -14,29 +14,41 @@ class DataProcessor:
 
     def setup_paths(self):
         current_directory = os.getcwd()
-        # base_folder = os.path.dirname(current_directory)
         data_folder = os.path.join(current_directory, "data")
-        self.input_path = os.path.join(data_folder, "input.csv")
-        self.output_path = os.path.join(data_folder, "output.xlsx")
+        self.query_input_path = os.path.join(data_folder, "query_input.csv")
+        self.polo_path = os.path.join(data_folder, "polo.csv")
+        self.output_path = os.path.join(data_folder, "query_output.xlsx")
 
     def load_data(self):
         print("\n" + "*" * 15 + "  Starting to Analyze  " + "*" * 15 + "\n")
-        self.df = pd.read_csv(self.input_path)
-        return self.df
+        self.query_df = pd.read_csv(self.query_input_path)
+        self.polo_df = pd.read_csv(self.polo_path)
+        return self.query_df, self.polo_df
 
+    def merge_data(self):
+        self.query_df, self.polo_df = self.load_data()
+
+        self.polo_df = self.polo_df[["userid", "name", "gl", "companyCode"]]
+        polo_first_owner = self.polo_df.groupby(['gl', 'companyCode']).first().reset_index()
+        polo_first_owner.rename(
+            columns={
+                "userid": "vm_alias",
+                "name": "vm_name",
+                "gl": "product_group_id",
+                "companyCode": "company_code",
+            },
+            inplace=True,
+        )
+        self.df = self.query_df.merge(
+            polo_first_owner,
+            how="left",
+            on=["product_group_id", "company_code"],
+        )
+        return self.df
+    
 
 class DataCleaner:
-    @staticmethod
-    def convert_dtypes(df):
-        """
-        date cols
-            start_datetime
-            end_datetime
-
-        paws_promo_id
-            str
-        """
-        # convert date
+    def convert_dtypes(self, df):
         df["start_datetime"] = pd.to_datetime(
             df["start_datetime"], format="mixed", errors="coerce"
         )
@@ -44,7 +56,6 @@ class DataCleaner:
             df["end_datetime"], format="mixed", errors="coerce"
         )
 
-        # Handle NA and inf values
         df["paws_promotion_id"] = np.where(
             (df["paws_promotion_id"] == np.nan)
             | (df["paws_promotion_id"].isnull())
@@ -57,14 +68,11 @@ class DataCleaner:
         df["paws_promotion_id"] = df["paws_promotion_id"].astype(str)
         return df
 
-    @staticmethod
-    def standardize_columns(df):
-        # Rename columns
+    def standardize_columns(self, df):
         df.rename(columns={"quantity_sum": "shipped_units"}, inplace=True)
         df["start_year_mo"] = df["start_datetime"].dt.to_period("M")
         df.rename(columns={"start_year_mo": "reporting_period"}, inplace=True)
 
-        # Convert datatypes
         float_cols = ["t4w_asp", "promotion_pricing_amount", "coop_amount"]
         int_cols = [
             "shipped_units",
@@ -91,10 +99,46 @@ class DataCleaner:
         )
         return df
 
+    def map_gl_codes(self, df):
+        
+        gl_mapping = {
+            "121": "Health & Personal Care",
+            "194": "Beauty",
+            "199": "Pets",
+            "325": "Grocery",
+            "364": "Health & Personal Care",
+            "510": "Lux Beauty",
+            "75": "Baby",
+        }
+
+        df["product_group_id"] = df["product_group_id"].astype(str)
+
+        for gl_code, category in gl_mapping.items():
+            df["product_group_id"] = np.where(
+                df["product_group_id"] == gl_code, category, df["product_group_id"]
+            )
+            
+        df.rename(columns={"product_group_id": "prod_line"}, inplace=True)
+        
+        return df
+
+    def convert_to_usd(self, df):
+        # USD:CAD exchange rate
+        USD_CAD_RATE = 1.43832
+        
+        # Columns containing monetary values
+        monetary_columns = ['t4w_asp', 'promotion_pricing_amount', 'coop_amount']
+        
+        # Convert each monetary column from CAD to USD
+        for col in monetary_columns:
+            if col in df.columns:
+                df[col] = df[col] / USD_CAD_RATE
+                df[col] = round(df[col], 2)
+        
+        return df
 
 class DataAggregator:
-    @staticmethod
-    def get_group_columns():
+    def get_group_columns(self):
         return [
             "asin",
             "reporting_period",
@@ -104,12 +148,14 @@ class DataAggregator:
             "marketplace_key",
             "promotion_key",
             "paws_promotion_id",
-            "owned_by_user_id",
+            "vm_alias",
+            "vm_name",
             "purpose",
             "agreement_id",
             "funding_type_name",
             "activity_type_name",
-            "product_group_id",
+            "prod_line",
+            "company_code",
             "vendor_code",
             "vendor_name",
             "t4w_asp",
@@ -117,8 +163,7 @@ class DataAggregator:
             "funding_per_asin",
         ]
 
-    @staticmethod
-    def get_final_column_order():
+    def get_final_column_order(self):
         return [
             "asin",
             "reporting_period",
@@ -129,11 +174,13 @@ class DataAggregator:
             "promotion_key",
             "paws_promotion_id",
             "agreement_id",
-            "owned_by_user_id",
+            "vm_alias",
+            "vm_name",
             "purpose",
             "funding_type_name",
             "activity_type_name",
-            "product_group_id",
+            "prod_line",
+            "company_code",
             "vendor_code",
             "vendor_name",
             "t4w_asp",
@@ -145,30 +192,27 @@ class DataAggregator:
             "incremental_gains",
         ]
 
-    @staticmethod
-    def aggregate_to_asin_level(df):
-        # Calculate funding_per_asin before aggregation
+    def aggregate_to_asin_level(self, df):
         df["funding_per_asin"] = df["coop_amount"] / df["shipped_units"]
         df["funding_per_asin"] = round(df["funding_per_asin"], 2)
         df.drop(columns=["coop_amount"], inplace=True)
 
-        # Group by ASIN level columns and aggregate
-        group_cols = DataAggregator.get_group_columns()
+        group_cols = self.get_group_columns()
         asin_level_df = (
             df.groupby(group_cols).agg({"shipped_units": "sum"}).reset_index()
         )
 
         return asin_level_df
 
-    @staticmethod
-    def create_vendor_agreement_view(df):
+    def create_vendor_agreement_view(self, df):
         vendor_cols = [
             "region_id",
             "marketplace_key",
             "reporting_period",
-            "product_group_id",
+            "prod_line",
             "vendor_code",
-            "vendor_name",
+            "vm_alias",
+            "vm_name",
             "agreement_id",
             "funding_per_asin",
             "incremental_gains",
@@ -187,15 +231,15 @@ class DataAggregator:
 
         return vendor_agreement_df
 
-    @staticmethod
-    def create_vm_vendor_view(df):
+    def create_vm_vendor_view(self, df):
         group_cols = [
             "region_id",
             "marketplace_key",
-            "product_group_id",
-            "owned_by_user_id",
-            "vendor_code",
-            "vendor_name",
+            "prod_line",
+            "vm_alias",
+            "vm_name",
+            "company_code",
+            # "vendor_name",
             "incremental_gains",
         ]
 
@@ -210,12 +254,11 @@ class DataAggregator:
 
         return res
 
-    @staticmethod
-    def create_gl_view(df):
+    def create_gl_view(self, df):
         group_cols = [
             "region_id",
             "marketplace_key",
-            "product_group_id",
+            "prod_line",
             "incremental_gains",
         ]
 
@@ -232,8 +275,7 @@ class DataAggregator:
 
 
 class Calculator:
-    @staticmethod
-    def calculate_incremental_metrics(df):
+    def calculate_incremental_metrics(self, df):
         # Calculate discount per unit
         df["discount_per_unit"] = df["t4w_asp"] - df["promotion_pricing_amount"]
         df["discount_per_unit"] = np.where(
@@ -242,10 +284,7 @@ class Calculator:
         df["discount_per_unit"] = round(df["discount_per_unit"], 2)
 
         # filter out null rows
-        df = df[
-            (df["discount_per_unit"] > 0)
-            & (df["funding_per_asin"] > 0)
-        ]
+        df = df[(df["discount_per_unit"] > 0) & (df["funding_per_asin"] > 0)]
 
         # Calculate incremental per unit
         df["incremental_per_unit"] = df["funding_per_asin"] - df["discount_per_unit"]
@@ -267,8 +306,7 @@ class Calculator:
 
         return df
 
-    @staticmethod
-    def sort_and_order_columns(df):
+    def sort_and_order_columns(self, df):
         # Sort values
         df = df.sort_values(
             by=["marketplace_key", "region_id", "incremental_gains"],
@@ -276,15 +314,15 @@ class Calculator:
         )
 
         # Reorder columns
-        col_order = DataAggregator.get_final_column_order()
+        aggregator = DataAggregator()
+        col_order = aggregator.get_final_column_order()
         df = df[col_order]
 
         return df
 
 
 class ExcelWriter:
-    @staticmethod
-    def write_to_excel(df, vendor_agreement_df, vm_vendor_df, gl_df, output_path):
+    def write_to_excel(self, df, vendor_agreement_df, vm_vendor_df, gl_df, output_path):
         wb = openpyxl.Workbook()
         wb.remove(wb["Sheet"])
 
@@ -305,17 +343,21 @@ class ExcelWriter:
         wb.save(output_path)
         print("\n" + "*" * 8 + f"  Output saved to {output_path}.  " + "*" * 8 + "\n")
 
-
 def main():
     # Initialize processor and load data
     processor = DataProcessor()
-    df = processor.load_data()
-    df.dropna(inplace=True,how='all')
-    
+    df = processor.merge_data()
+    df.dropna(inplace=True, how="all")
+
     # Clean data
     cleaner = DataCleaner()
+    # Convert CAD to USD first
+    df = cleaner.convert_to_usd(df)
+    # Continue with other cleaning steps
     df = cleaner.convert_dtypes(df)
     df = cleaner.standardize_columns(df)
+    df = cleaner.map_gl_codes(df)
+
 
     # Aggregate to ASIN level first
     aggregator = DataAggregator()
@@ -340,9 +382,14 @@ def main():
     writer.write_to_excel(
         asin_level_df, vendor_agreement_df, vm_vendor_df, gl_df, processor.output_path
     )
-
-    print("\n" + "*" * 15 + "  Analysis Complete  " + "*" * 15 + "\n")
-
+    
+    dct = {
+        "asin_level": asin_level_df,
+        "vendor_agreement": vendor_agreement_df,
+        "vm_vendor": vm_vendor_df,
+        "gl_level": gl_df,
+    }
+    return dct
 
 if __name__ == "__main__":
     main()

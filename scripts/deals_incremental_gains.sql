@@ -20,37 +20,13 @@ CREATE TEMP TABLE filtered_agreements AS (
         AND a.marketplace_id = 7
         AND a.product_group_id IN (510, 364, 325, 199, 194, 121, 75)  
         AND a.signed_flag=1
-        AND a.agreement_start_date <= TO_DATE('2025-10-31', 'YYYY-MM-DD')
+        AND a.agreement_start_date >= TO_DATE('2025-01-01', 'YYYY-MM-DD')
+        -- AND a.agreement_start_date <= TO_DATE('2025-10-31', 'YYYY-MM-DD')
         AND (a.agreement_end_date IS NULL OR a.agreement_end_date >= TO_DATE('2025-01-01', 'YYYY-MM-DD'))
         AND a.agreement_id IS NOT NULL
-        AND UPPER(a.funding_type_name) = 'FLEXIBLE AGREEMENT'
-        AND cast(a.signed_flag as int)=1
-);
-
-
--- Get promotional flex agreements
-DROP TABLE IF EXISTS promotional_flex_agreements;
-CREATE TEMP TABLE promotional_flex_agreements AS (
-    SELECT
-        fa.agreement_id,
-        p.promotion_key,
-        p.paws_promotion_id,
-        p.deal_id,
-        p.purpose,
-        p.start_datetime,
-        p.end_datetime,
-        p.region_id,
-        p.marketplace_key,
-        fa.product_group_id,
-        fa.owned_by_user_id,
-        fa.funding_type_name,
-        fa.activity_type_name
-    FROM filtered_agreements fa
-        LEFT JOIN andes.pdm.dim_promotion p
-        ON fa.agreement_id = p.coop_agreement_id
-    WHERE 
-        p.start_datetime <= TO_DATE('2025-10-31', 'YYYY-MM-DD')
-        AND p.end_datetime >= TO_DATE('2025-01-01', 'YYYY-MM-DD')
+        AND UPPER(a.funding_type_name) = UPPER('FLEXIBLE AGREEMENT')
+        AND CAST(a.signed_flag as int)=1
+        -- AND a.owned_by_user_id = 'taruncho' -- test
 );
 
 
@@ -69,11 +45,14 @@ CREATE TEMP TABLE asin_based_flex_agreements AS (
         a.owned_by_user_id,
         a.funding_type_name,
         a.activity_type_name
+        -- a.promotion_type
     FROM filtered_agreements a
-        LEFT JOIN promotional_flex_agreements p 
-        ON a.agreement_id = p.agreement_id
-    WHERE p.agreement_id IS NULL
-        AND a.activity_type_name = 'Promotions - Promotional Allowance'
+    WHERE UPPER(a.activity_type_name) IN (
+        UPPER('Promotions - Price Discounts'), 
+        UPPER('Promotions - Special Marketing Events'),
+        UPPER('Product Cost - Margin Improvement')
+    )
+        -- AND a.agreement_id = 92035245 -- test
 );
 
 
@@ -98,15 +77,16 @@ CREATE TEMP TABLE asin_based_flex_agreements_asins AS (
         SUM(r.quantity) as quantity,
         SUM(r.coop_amount) as coop_amount
     FROM asin_based_flex_agreements p
-        left join andes.rs_coop_ddl.COOP_CSI_CALCULATION_RESULTS  r 
-        on p.agreement_id = r.agreement_id 
+        LEFT JOIN andes.rs_coop_ddl.COOP_CSI_CALCULATION_RESULTS  r 
+        ON p.agreement_id = r.agreement_id 
     WHERE r.region_id = 1
         AND r.marketplace_id = 7
         AND r.gl_product_group_id IN (510, 364, 325, 199, 194, 121, 75)  
         AND TO_DATE(r.order_datetime, 'YYYY-MM-DD') 
             BETWEEN p.agreement_start_date 
-            AND COALESCE(p.agreement_end_date, TO_DATE('2025-10-31', 'YYYY-MM-DD'))
-    group by 
+            AND COALESCE(p.agreement_end_date, TO_DATE('2025-11-30', 'YYYY-MM-DD'))
+        -- AND r.asin='B0DF8WNZXZ'   -- test
+    GROUP BY 
         r.asin,
         r.customer_shipment_item_id, 
         p.agreement_start_date,
@@ -121,7 +101,7 @@ CREATE TEMP TABLE asin_based_flex_agreements_asins AS (
 );
 
  
--- First create a filtered shipments table
+-- First create an intermediary filtered shipments table
 DROP TABLE IF EXISTS filtered_shipments;
 CREATE TEMP TABLE filtered_shipments AS (
     SELECT 
@@ -131,7 +111,8 @@ CREATE TEMP TABLE filtered_shipments AS (
     WHERE region_id = 1
         AND marketplace_id = 7
         AND gl_product_group IN (510, 364, 325, 199, 194, 121, 75)
-        AND TO_DATE(order_datetime, 'YYYY-MM-DD') <= TO_DATE('2025-10-31', 'YYYY-MM-DD')
+        AND TO_DATE(order_datetime, 'YYYY-MM-DD') >= TO_DATE('2025-01-01', 'YYYY-MM-DD')
+        AND TO_DATE(order_datetime, 'YYYY-MM-DD') <= TO_DATE('2025-12-31', 'YYYY-MM-DD')
 );
 
 
@@ -159,6 +140,7 @@ CREATE TEMP TABLE asin_based_coop_result AS (
     FROM asin_based_flex_agreements_asins a
         LEFT JOIN filtered_shipments o
         ON a.customer_shipment_item_id = o.customer_shipment_item_id
+    WHERE o.our_price > 0
     GROUP BY
         a.asin,
         a.promotion_key,
@@ -181,6 +163,37 @@ CREATE TEMP TABLE asin_based_coop_result AS (
 /******************************************************************
  *              Promotional Flex Agreements Processing
  ******************************************************************/
+-- Get promotional flex agreements
+DROP TABLE IF EXISTS promotional_flex_agreements;
+CREATE TEMP TABLE promotional_flex_agreements AS (
+    SELECT
+        fa.agreement_id,
+        p.promotion_key,
+        p.paws_promotion_id,
+        p.deal_id,
+        p.purpose,
+        p.start_datetime,
+        p.end_datetime,
+        p.region_id,
+        p.marketplace_key,
+        fa.product_group_id,
+        fa.owned_by_user_id,
+        fa.funding_type_name,
+        fa.activity_type_name,
+        p.promotion_type
+    FROM filtered_agreements fa
+        LEFT JOIN andes.pdm.dim_promotion p
+        ON fa.agreement_id = p.coop_agreement_id
+    WHERE 
+        p.start_datetime >= TO_DATE('2025-01-01', 'YYYY-MM-DD')
+        AND p.end_datetime <= TO_DATE('2025-12-31', 'YYYY-MM-DD')
+        AND p.promotion_type != 'Coupon'
+        -- AND p.paws_promotion_id = '311800571013' -- test
+    --     p.start_datetime <= TO_DATE('2025-10-31', 'YYYY-MM-DD')
+    --     AND p.end_datetime >= TO_DATE('2025-01-01', 'YYYY-MM-DD')
+);
+
+
 DROP TABLE IF EXISTS temp_flex_promo_asin;
 CREATE TEMP TABLE temp_flex_promo_asin AS (
     SELECT
@@ -202,7 +215,8 @@ CREATE TEMP TABLE temp_flex_promo_asin AS (
     FROM promotional_flex_agreements p
         LEFT JOIN andes.pdm.dim_promotion_asin pa
         ON pa.promotion_key = p.promotion_key
-        AND pa.region_id = p.region_id
+        -- AND pa.region_id = p.region_id
+        -- and pa.asin = 'B07JQM8BR1' -- test
     WHERE pa.asin_approval_status = 'Approved'
 );
   
@@ -231,7 +245,7 @@ CREATE TEMP TABLE flex_coop_results AS (
     FROM andes.rs_coop_ddl.coop_csi_calculation_results r
         INNER JOIN temp_flex_promo_asin t
         ON t.asin = r.asin
-        AND t.region_id = r.region_id
+        -- AND t.region_id = r.region_id
         AND t.agreement_id = r.agreement_id
     WHERE r.region_id=1
         AND r.marketplace_id = 7
@@ -239,9 +253,10 @@ CREATE TEMP TABLE flex_coop_results AS (
         AND r.agreement_id IS NOT NULL
         AND TO_DATE(r.order_datetime,'YYYY-MM-DD') 
             BETWEEN TO_DATE('2025-01-01','YYYY-MM-DD')
-            AND TO_DATE('2025-10-16', 'YYYY-MM-DD')
+            AND TO_DATE('2025-11-30', 'YYYY-MM-DD')
         AND r.is_valid = 'Y'
         AND r.vendor_code IS NOT NULL
+        -- AND t.paws_promotion_id=311800571013    -- test
     GROUP BY 
         r.asin,
         t.promotion_key,
@@ -260,8 +275,10 @@ CREATE TEMP TABLE flex_coop_results AS (
 );
 
 
--- combine
-DROP TABLE IF EXISTS combined_flex_agreements;
+/******************************************************************
+ *                          Combine 
+ ******************************************************************/
+ DROP TABLE IF EXISTS combined_flex_agreements;
 CREATE TEMP TABLE combined_flex_agreements AS ( 
     select
         asin,
@@ -286,7 +303,7 @@ CREATE TEMP TABLE combined_flex_agreements AS (
     SELECT
         asin,
         CAST(promotion_key as varchar) as promotion_key,
-        cast(paws_promotion_id as varchar) as paws_promotion_id,
+        CAST(paws_promotion_id as varchar) as paws_promotion_id,
         purpose,
         start_datetime,
         end_datetime,
@@ -416,23 +433,24 @@ CREATE TEMP TABLE agreement_calcs_output AS (
             AND c.flex_type = tw.flex_type
             AND tw.paws_promotion_id = c.paws_promotion_id
             AND tw.agreement_id = c.agreement_id
-        LEFT JOIN andes.BOOKER.D_MP_ASIN_MANUFACTURER mam 
-            ON mam.region_id = c.region_id
-            AND mam.marketplace_id = c.marketplace_key
-            AND mam.asin = c.asin
+        LEFT JOIN andes.BOOKER.D_MP_ASIN_MANUFACTURER mam  
+            ON mam.asin = c.asin
     WHERE c.coop_amount IS NOT NULL
-        AND mam.owning_vendor_code is not null
+        AND mam.owning_vendor_code IS NOT NULL
+        AND mam.region_id=1
+        AND mam.marketplace_id=7
 );
 
-
-DROP TABLE IF EXISTS final_output;
-CREATE TEMP TABLE final_output AS (
+-- don't use vendor name col here
+DROP TABLE IF EXISTS calcs_vendor;
+CREATE TEMP TABLE calcs_vendor AS (
     SELECT
         a.region_id,
         a.marketplace_key,
         a.product_group_id,
         a.asin,
         a.owned_by_user_id,
+        c.company_code,
         a.vendor_code,
         a.vendor_name,
         a.promotion_key,
@@ -449,12 +467,15 @@ CREATE TEMP TABLE final_output AS (
         a.t4w_asp,
         SUM(a.shipped_units) as shipped_units
     FROM agreement_calcs_output a
+        LEFT JOIN andes.roi_ml_ddl.vendor_company_codes c
+        ON a.vendor_code = c.vendor_code
     GROUP BY         
         a.region_id,
         a.marketplace_key,
         a.product_group_id,
         a.asin,
         a.owned_by_user_id,
+        c.company_code,
         a.vendor_code,
         a.vendor_name,
         a.promotion_key,
@@ -472,4 +493,4 @@ CREATE TEMP TABLE final_output AS (
 );
 
 -- Display results
-select * from final_output;
+select * from calcs_vendor;
